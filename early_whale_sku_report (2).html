@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Early Whales — SKU Revenue by Segment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3; --card: #ffffff; --border: rgba(0,0,0,0.08);
+    --text: #1a1a1a; --text-muted: #6b6b6b;
+    --accent: #2c5f8a; --accent-light: #e8f0f8;
+    --teal: #1e7a6e; --teal-light: #e3f3f1;
+    --amber: #a05c0a; --amber-light: #fdf0e0;
+    --red: #b03a2e; --red-light: #fdecea;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--sans); color: var(--text); font-size: 14px; }
+
+  .header { background: var(--accent); color: #fff; padding: 20px 32px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; flex: 1; }
+  .header .sub { font-size: 12px; opacity: 0.75; font-family: var(--mono); }
+
+  .tab-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; position: sticky; top: 57px; z-index: 90; overflow-x: auto; }
+  .tab-btn { padding: 12px 20px; font-family: var(--mono); font-size: 12px; border: none; background: none; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
+  .tab-btn:hover { color: var(--accent); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab-btn.teal { color: var(--teal-light); }
+  .tab-btn.teal.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  .page { display: none; padding: 28px 32px; max-width: 1300px; }
+  .page.active { display: block; }
+
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 16px; margin-top: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .stat-card .value { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--accent); }
+  .stat-card .sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full-col { margin-bottom: 16px; }
+
+  .card { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 16px; }
+
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap-lg { position: relative; height: 300px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  thead th.right { text-align: right; }
+  tbody td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #faf9f7; }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  .right { text-align: right; }
+
+  .insight { border-radius: 0 6px 6px 0; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 16px; border-left: 3px solid; }
+  .insight.blue { background: var(--accent-light); border-color: var(--accent); color: #1a3a5c; }
+  .insight.green { background: var(--teal-light); border-color: var(--teal); color: #0f3d36; }
+  .insight.amber { background: var(--amber-light); border-color: var(--amber); color: #4a2a04; }
+  .insight.red { background: var(--red-light); border-color: var(--red); color: #5a1a14; }
+  .insight strong { font-weight: 600; }
+
+  .window-toggle { display: inline-flex; border: 0.5px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 20px; }
+  .window-btn { padding: 7px 18px; font-size: 12px; font-family: var(--mono); border: none; background: #fff; cursor: pointer; color: var(--text-muted); transition: background 0.15s, color 0.15s; }
+  .window-btn.active { background: var(--accent); color: #fff; }
+  .window-btn:not(:last-child) { border-right: 0.5px solid var(--border); }
+
+  .heatmap-wrap { overflow-x: auto; }
+  .heatmap-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .heatmap-table th { padding: 8px 12px; text-align: right; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .heatmap-table th.sku-col { text-align: left; }
+  .heatmap-table td { padding: 7px 12px; border-bottom: 0.5px solid var(--border); }
+  .heatmap-table .sku-name { font-size: 13px; color: var(--text); white-space: nowrap; }
+  .heatmap-table .pct-cell { text-align: right; font-family: var(--mono); font-size: 11px; }
+
+  .delta-pos { color: #1e7a6e; font-weight: 500; }
+  .delta-neg { color: #b03a2e; font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(3,1fr); }
+    .two-col, .three-col { grid-template-columns: 1fr; }
+    .page { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Early Whales — SKU Revenue by Segment</h1>
+  <span class="sub">India (≥₹700 D3) · International (≥₹1000 D3) · D15 Revenue Quartile Segments</span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showPage('india',this)">India</button>
+  <button class="tab-btn" onclick="showPage('intl',this)">International</button>
+  <button class="tab-btn" onclick="showPage('compare',this)">India vs International</button>
+  <button class="tab-btn" onclick="showPage('d15vd30',this)">Lifetime vs D30</button>
+</div>
+
+<!-- ══════════════ INDIA ══════════════ -->
+<div class="page active" id="page-india">
+  <div class="section-label">India Early Whales · D15 Revenue Segments</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:12px;color:var(--text-muted);">Revenue window:</span>
+    <div class="window-toggle">
+      <button class="window-btn active" onclick="setWindow('india','lifetime',this)">Lifetime</button>
+      <button class="window-btn" onclick="setWindow('india','d30',this)">D30</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="india-stats"></div>
+
+  <div class="insight blue" id="india-insight"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>Revenue mix — stacked 100%</h3>
+      <div class="chart-wrap-lg"><canvas id="india_stacked" role="img" aria-label="India stacked 100% SKU revenue by segment"></canvas></div>
+      <div id="india_stacked_leg" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+    </div>
+    <div class="card">
+      <h3>Absolute revenue by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="india_abs" role="img" aria-label="India absolute revenue by SKU per segment"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>Contribution % heatmap</h3>
+    <div class="heatmap-wrap" id="india_heatmap"></div>
+  </div>
+
+  <div class="section-label" style="margin-top:24px;">Segment deep dives</div>
+  <div class="three-col">
+    <div class="card"><h3 id="india_d1_title">q25 — SKU breakdown</h3><div class="chart-wrap"><canvas id="india_d1" role="img" aria-label="India q25 donut"></canvas></div></div>
+    <div class="card"><h3 id="india_d2_title">q75 — SKU breakdown</h3><div class="chart-wrap"><canvas id="india_d2" role="img" aria-label="India q75 donut"></canvas></div></div>
+    <div class="card"><h3 id="india_d3_title">q90+ — SKU breakdown</h3><div class="chart-wrap"><canvas id="india_d3" role="img" aria-label="India q90+ donut"></canvas></div></div>
+  </div>
+
+  <div class="full-col card">
+    <h3>SKU revenue detail — all segments</h3>
+    <table>
+      <thead><tr>
+        <th>SKU</th>
+        <th class="right">q25</th><th class="right">q25 %</th>
+        <th class="right">q50</th><th class="right">q50 %</th>
+        <th class="right">q75</th><th class="right">q75 %</th>
+        <th class="right">q90</th><th class="right">q90 %</th>
+        <th class="right">q90+</th><th class="right">q90+ %</th>
+      </tr></thead>
+      <tbody id="india_tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════ INTERNATIONAL ══════════════ -->
+<div class="page" id="page-intl">
+  <div class="section-label">International Early Whales · D15 Revenue Segments</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:12px;color:var(--text-muted);">Revenue window:</span>
+    <div class="window-toggle">
+      <button class="window-btn active" onclick="setWindow('intl','lifetime',this)">Lifetime</button>
+      <button class="window-btn" onclick="setWindow('intl','d30',this)">D30</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="intl-stats"></div>
+
+  <div class="insight amber" id="intl-insight"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>Revenue mix — stacked 100%</h3>
+      <div class="chart-wrap-lg"><canvas id="intl_stacked" role="img" aria-label="International stacked 100% SKU revenue by segment"></canvas></div>
+      <div id="intl_stacked_leg" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+    </div>
+    <div class="card">
+      <h3>Absolute revenue by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="intl_abs" role="img" aria-label="International absolute revenue by SKU per segment"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>Contribution % heatmap</h3>
+    <div class="heatmap-wrap" id="intl_heatmap"></div>
+  </div>
+
+  <div class="section-label" style="margin-top:24px;">Segment deep dives</div>
+  <div class="three-col">
+    <div class="card"><h3 id="intl_d1_title">q25 — SKU breakdown</h3><div class="chart-wrap"><canvas id="intl_d1" role="img" aria-label="International q25 donut"></canvas></div></div>
+    <div class="card"><h3 id="intl_d2_title">q75 — SKU breakdown</h3><div class="chart-wrap"><canvas id="intl_d2" role="img" aria-label="International q75 donut"></canvas></div></div>
+    <div class="card"><h3 id="intl_d3_title">q90+ — SKU breakdown</h3><div class="chart-wrap"><canvas id="intl_d3" role="img" aria-label="International q90+ donut"></canvas></div></div>
+  </div>
+
+  <div class="full-col card">
+    <h3>SKU revenue detail — all segments</h3>
+    <table>
+      <thead><tr>
+        <th>SKU</th>
+        <th class="right">q25</th><th class="right">q25 %</th>
+        <th class="right">q50</th><th class="right">q50 %</th>
+        <th class="right">q75</th><th class="right">q75 %</th>
+        <th class="right">q90</th><th class="right">q90 %</th>
+        <th class="right">q90+</th><th class="right">q90+ %</th>
+      </tr></thead>
+      <tbody id="intl_tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════ COMPARE ══════════════ -->
+<div class="page" id="page-compare">
+  <div class="section-label">India vs International — Side by side</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:12px;color:var(--text-muted);">Revenue window:</span>
+    <div class="window-toggle">
+      <button class="window-btn active" onclick="setWindow('compare','lifetime',this)">Lifetime</button>
+      <button class="window-btn" onclick="setWindow('compare','d30',this)">D30</button>
+    </div>
+  </div>
+
+  <div class="insight green">
+    <strong>Key structural difference:</strong> India's lower tiers are more SP-concentrated; International users shift to HC_Pack a segment earlier. At q90+, both regions converge on HC_Pack as top SKU. SP→HC_Pack crossover happens at q90 in India, at q75–q90 in International.
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>India — revenue mix by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="cmp_india" role="img" aria-label="India stacked mix comparison"></canvas></div>
+      <div id="cmp_india_leg" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+    </div>
+    <div class="card">
+      <h3>International — revenue mix by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="cmp_intl" role="img" aria-label="International stacked mix comparison"></canvas></div>
+      <div id="cmp_intl_leg" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>SP contribution % — India vs International</h3>
+    <div class="chart-wrap"><canvas id="cmp_sp" role="img" aria-label="SP contribution % India vs International"></canvas></div>
+  </div>
+  <div class="full-col card">
+    <h3>HC_Pack contribution % — India vs International</h3>
+    <div class="chart-wrap"><canvas id="cmp_hc" role="img" aria-label="HC_Pack contribution % India vs International"></canvas></div>
+  </div>
+  <div class="full-col card">
+    <h3>Total revenue by segment — India vs International</h3>
+    <div class="chart-wrap"><canvas id="cmp_total" role="img" aria-label="Total revenue India vs International"></canvas></div>
+  </div>
+</div>
+
+<!-- ══════════════ LIFETIME vs D30 ══════════════ -->
+<div class="page" id="page-d15vd30">
+  <div class="section-label">Lifetime Revenue vs D30 Revenue — SKU Mix Shift</div>
+
+  <div class="insight blue">
+    <strong>Why this comparison matters:</strong> Lifetime revenue includes all spend after D15, which means users acquired earlier contribute more simply by having more time in-game. D30 controls for this — every user has completed at least D30 — making the SKU mix a cleaner read of early purchasing intent rather than tenure. Differences between the two windows reveal which SKUs are driven by early intent vs longer-term behaviour.
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>India — Lifetime vs D30 mix (q25)</h3>
+      <div class="chart-wrap"><canvas id="d30cmp_ind_q25" role="img" aria-label="India q25 lifetime vs d30 comparison"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>International — Lifetime vs D30 mix (q25)</h3>
+      <div class="chart-wrap"><canvas id="d30cmp_intl_q25" role="img" aria-label="International q25 lifetime vs d30 comparison"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>India — Lifetime vs D30 mix (q90+)</h3>
+      <div class="chart-wrap"><canvas id="d30cmp_ind_q90p" role="img" aria-label="India q90+ lifetime vs d30 comparison"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>International — Lifetime vs D30 mix (q90+)</h3>
+      <div class="chart-wrap"><canvas id="d30cmp_intl_q90p" role="img" aria-label="International q90+ lifetime vs d30 comparison"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>India — SKU share delta (D30 minus Lifetime) by segment · positive = more weight at D30</h3>
+    <div id="india_delta_table"></div>
+  </div>
+
+  <div class="full-col card" style="margin-top:16px;">
+    <h3>International — SKU share delta (D30 minus Lifetime) by segment · positive = more weight at D30</h3>
+    <div id="intl_delta_table"></div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.display = false;
+
+const SEGS = ['q25','q50','q75','q90','q90+'];
+const ALL_SKUS = ['SP','HC_Pack','Others','TP','ESP','TT','League_Promo','VIP_OFFER_TREE','SUT','SSP','WOD'];
+const COLORS = ['#2c5f8a','#1e7a6e','#7b3f9e','#c49a1a','#b03a2e','#3a8a5f','#6b6b6b','#a05c0a','#4a7ab5','#888780','#c4884a'];
+const SKU_COLOR = {};
+ALL_SKUS.forEach((s,i) => SKU_COLOR[s] = COLORS[i]);
+
+const DATA = {
+  lifetime: {
+    India: {
+      q25:   {SP:477565,ESP:103575,Others:55462,HC_Pack:54428,TP:23842,SSP:16327,League_Promo:12731,TT:7497,VIP_OFFER_TREE:2199,WOD:232,SUT:99},
+      q50:   {SP:524545,ESP:139806,Others:67240,HC_Pack:57879,TP:29972,SSP:18218,League_Promo:14334,TT:879,WOD:117},
+      q75:   {SP:1242175,Others:483161,HC_Pack:327376,ESP:272364,TP:225956,TT:78619,League_Promo:68982,SSP:23787,VIP_OFFER_TREE:13158,SUT:1692,WOD:166},
+      q90:   {SP:855254,HC_Pack:750832,Others:572464,TP:259329,ESP:207127,League_Promo:125063,TT:68911,VIP_OFFER_TREE:57113,SSP:14112,SUT:5075,WOD:139},
+      'q90+':{HC_Pack:3337667,Others:2132270,TP:1011984,SP:854218,TT:665354,SUT:475399,VIP_OFFER_TREE:465022,League_Promo:341177,ESP:214802,SSP:8804,WOD:99}
+    },
+    International: {
+      q25:   {SP:259377,ESP:83217,Others:33165,HC_Pack:32473,TP:19266,League_Promo:13415,SSP:10507,WOD:317},
+      q50:   {SP:458529,ESP:127179,Others:98914,HC_Pack:89979,TP:26390,SSP:19919,League_Promo:17951,TT:1095,WOD:302},
+      q75:   {SP:690393,Others:315366,HC_Pack:300447,ESP:173698,TP:160711,League_Promo:50942,TT:30762,SSP:18875,VIP_OFFER_TREE:3240,SUT:2831,WOD:334},
+      q90:   {HC_Pack:765773,SP:678342,Others:583863,TP:329297,ESP:218306,League_Promo:116518,TT:98460,VIP_OFFER_TREE:34539,SUT:24914,SSP:15819,WOD:146},
+      'q90+':{HC_Pack:3444002,Others:1648047,TP:1273748,TT:819376,SP:686563,SUT:431085,VIP_OFFER_TREE:279102,League_Promo:275612,ESP:180749,SSP:10326,WOD:81}
+    }
+  },
+  d30: {
+    India: {
+      q25:   {SP:337558,ESP:89161,HC_Pack:20131,Others:19709,SSP:14536,TP:11615,League_Promo:5938,TT:799,WOD:151},
+      q50:   {SP:362083,ESP:120709,Others:33827,HC_Pack:30888,TP:19388,SSP:16040,League_Promo:10969,WOD:117},
+      q75:   {SP:807489,ESP:233039,Others:182788,HC_Pack:120737,TP:115477,League_Promo:41527,SSP:20484,TT:11730,VIP_OFFER_TREE:11159,SUT:669,WOD:166},
+      q90:   {SP:496436,HC_Pack:348926,Others:211772,ESP:177668,TP:152429,League_Promo:59640,VIP_OFFER_TREE:33724,TT:17403,SSP:12731,SUT:2079,WOD:139},
+      'q90+':{HC_Pack:1815357,Others:1065461,TP:575646,SP:460541,VIP_OFFER_TREE:394671,TT:267026,League_Promo:223227,ESP:184673,SUT:166907,SSP:7523,WOD:99}
+    },
+    International: {
+      q25:   {SP:197648,ESP:68074,Others:20988,HC_Pack:20913,League_Promo:9805,SSP:9030,TP:5573,WOD:317},
+      q50:   {SP:396454,ESP:105498,HC_Pack:71048,Others:70785,TP:21760,SSP:18091,League_Promo:15375,TT:408,WOD:302},
+      q75:   {SP:478234,HC_Pack:189513,Others:149436,ESP:145948,TP:78777,League_Promo:32861,SSP:16285,TT:4844,VIP_OFFER_TREE:3240,SUT:1299,WOD:334},
+      q90:   {SP:422191,HC_Pack:343446,Others:255479,TP:179628,ESP:178717,League_Promo:78460,TT:49854,VIP_OFFER_TREE:25694,SSP:13052,SUT:3242,WOD:146},
+      'q90+':{HC_Pack:1592245,Others:691448,TP:657580,SP:390450,TT:303407,VIP_OFFER_TREE:251349,SUT:245332,League_Promo:193626,ESP:162792,SSP:9704,WOD:81}
+    }
+  }
+};
+
+// Per-region window state
+const windowState = { india: 'lifetime', intl: 'lifetime', compare: 'lifetime' };
+
+// Chart instance registry for cleanup
+const chartReg = {};
+function destroyChart(id) { if (chartReg[id]) { chartReg[id].destroy(); delete chartReg[id]; } }
+function registerChart(id, instance) { chartReg[id] = instance; }
+
+function total(d) { return Object.values(d).reduce((a,b)=>a+b,0); }
+function pct(v,t) { return t ? +(v/t*100).toFixed(1) : 0; }
+function fmtR(n) { if (!n) return '—'; return n>=1e6?(n/1e6).toFixed(2)+'L':n>=1e3?(n/1e3).toFixed(0)+'K':''+n; }
+function fmtFull(n) { return '₹'+Math.round(n).toLocaleString('en-IN'); }
+
+function getSkus(window, region) {
+  const seen = new Set();
+  SEGS.forEach(s => Object.keys(DATA[window][region][s]||{}).forEach(k => seen.add(k)));
+  return ALL_SKUS.filter(k => seen.has(k));
+}
+
+function buildLegend(elId, skus) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = skus.map(s =>
+    `<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
+      <span style="width:9px;height:9px;border-radius:2px;background:${SKU_COLOR[s]};flex-shrink:0;"></span>${s.replace(/_/g,' ')}
+    </span>`).join('');
+}
+
+function makeStacked(canvasId, win, region, legId) {
+  destroyChart(canvasId);
+  const skus = getSkus(win, region);
+  const datasets = skus.map(sku => ({
+    label: sku.replace(/_/g,' '),
+    data: SEGS.map(s => { const d=DATA[win][region][s]||{}; return pct(d[sku]||0, total(d)); }),
+    backgroundColor: SKU_COLOR[sku], borderWidth: 0
+  }));
+  const inst = new Chart(document.getElementById(canvasId), {
+    type: 'bar', data: { labels: SEGS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}} },
+      scales: {
+        x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},
+        y:{stacked:true,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+  if (legId) buildLegend(legId, skus);
+}
+
+function makeAbs(canvasId, win, region) {
+  destroyChart(canvasId);
+  const skus = getSkus(win, region);
+  const datasets = skus.map(sku => ({
+    label: sku.replace(/_/g,' '),
+    data: SEGS.map(s => DATA[win][region][s] ? (DATA[win][region][s][sku]||0) : 0),
+    backgroundColor: SKU_COLOR[sku], borderWidth: 0, borderRadius: 2
+  }));
+  const inst = new Chart(document.getElementById(canvasId), {
+    type: 'bar', data: { labels: SEGS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}} },
+      scales: {
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{ticks:{callback:v=>'₹'+fmtR(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function makeDonut(canvasId, win, region, seg) {
+  destroyChart(canvasId);
+  const d = DATA[win][region][seg] || {};
+  const skus = ALL_SKUS.filter(k => d[k]);
+  const vals = skus.map(k => d[k]);
+  const t = vals.reduce((a,b)=>a+b,0);
+  const inst = new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: { labels: skus.map(s=>s.replace(/_/g,' ')), datasets:[{data:vals, backgroundColor:skus.map(s=>SKU_COLOR[s]), borderWidth:1, borderColor:'#fff'}] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:true,position:'right',labels:{boxWidth:9,padding:7,font:{size:10}}},
+        tooltip:{callbacks:{label:c=>` ${c.label}: ${fmtFull(c.parsed)} (${pct(c.parsed,t).toFixed(1)}%)`}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function makeHeatmap(containerId, win, region) {
+  const skus = getSkus(win, region);
+  const totals = {};
+  SEGS.forEach(s => { totals[s] = total(DATA[win][region][s]||{}); });
+  let html = `<table class="heatmap-table"><thead><tr>
+    <th class="sku-col">SKU</th>
+    ${SEGS.map(s=>`<th>${s}<br><span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;">₹${fmtR(totals[s])}</span></th>`).join('')}
+  </tr></thead><tbody>`;
+  skus.forEach(sku => {
+    html += `<tr><td class="sku-name">${sku.replace(/_/g,' ')}</td>`;
+    SEGS.forEach(s => {
+      const d=DATA[win][region][s]||{};
+      const p=pct(d[sku]||0, totals[s]);
+      const intensity=Math.min(p/55,1);
+      const bg=`rgba(44,95,138,${(intensity*0.6).toFixed(2)})`;
+      const fg=intensity>0.35?'#fff':'var(--text)';
+      html+=`<td class="pct-cell" style="background:${bg};color:${fg};">${p>=0.5?p.toFixed(1)+'%':''}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function makeDetailTable(tbodyId, win, region) {
+  const skus = getSkus(win, region);
+  const totals = {};
+  SEGS.forEach(s => { totals[s] = total(DATA[win][region][s]||{}); });
+  let html = '';
+  skus.forEach(sku => {
+    html+=`<tr><td>${sku.replace(/_/g,' ')}</td>`;
+    SEGS.forEach(s => {
+      const v=(DATA[win][region][s]||{})[sku]||0;
+      const p=pct(v,totals[s]);
+      html+=`<td class="mono right">${v?'₹'+fmtR(v):'—'}</td>`;
+      html+=`<td class="right" style="font-size:11px;color:var(--text-muted);">${p>=0.5?p.toFixed(1)+'%':''}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  document.getElementById(tbodyId).innerHTML=html;
+}
+
+function makeStats(containerId, win, region) {
+  const topSkuOf = (s) => {
+    const d=DATA[win][region][s]||{};
+    const t=total(d);
+    if (!t) return {name:'—',pct:0};
+    const top=Object.entries(d).sort((a,b)=>b[1]-a[1])[0];
+    return {name:top[0].replace(/_/g,' '), pct:Math.round(top[1]/t*100)};
+  };
+  document.getElementById(containerId).innerHTML = SEGS.map(s => {
+    const t=total(DATA[win][region][s]||{});
+    const top=topSkuOf(s);
+    return `<div class="stat-card">
+      <div class="label">${s}</div>
+      <div class="value">₹${fmtR(t)}</div>
+      <div class="sub">${top.name} · ${top.pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function getInsightText(win, region) {
+  if (win==='lifetime' && region==='India') return '<strong>SP dominates lower tiers, HC_Pack takes over at q90+.</strong> SP commands 62% at q25 but falls to 9% at q90+. HC_Pack climbs from 7% to 35%. SUT and VIP_OFFER_TREE are near-absent below q75 but material at q90+.';
+  if (win==='d30' && region==='India') return '<strong>D30 window sharpens the picture.</strong> SP is even more dominant at q25/q50 in D30 (67% vs 62% lifetime), confirming SP is an early-intent SKU. HC_Pack share at q90+ drops from 35% (lifetime) to 32% (D30) — the gap is post-D30 spend from older accounts. VIP_OFFER_TREE notably higher at q90+ in D30 (9.2% vs 4.9% lifetime), suggesting it converts early in the lifecycle.';
+  if (win==='lifetime' && region==='International') return '<strong>Same SP→HC_Pack transition but a segment earlier than India.</strong> International q90 already tips to HC_Pack (26.6%); India q90 still SP-led (29.3%). TT stronger internationally at q90+.';
+  if (win==='d30' && region==='International') return '<strong>D30 confirms International users diversify into HC_Pack faster.</strong> Even at q50, HC_Pack contributes 10% internationally vs 6% in India D30. The SP dominance at lower tiers is real but less extreme than India, even within D30.';
+  return '';
+}
+
+function makeLineCompare(canvasId, win, sku) {
+  destroyChart(canvasId);
+  const indData  = SEGS.map(s => { const d=DATA[win].India[s]||{}; return pct(d[sku]||0,total(d)); });
+  const intlData = SEGS.map(s => { const d=DATA[win].International[s]||{}; return pct(d[sku]||0,total(d)); });
+  const inst = new Chart(document.getElementById(canvasId), {
+    type:'line',
+    data:{labels:SEGS,datasets:[
+      {label:'India',data:indData,borderColor:'#2c5f8a',backgroundColor:'rgba(44,95,138,0.08)',fill:true,tension:0.3,pointRadius:4,borderWidth:2},
+      {label:'International',data:intlData,borderColor:'#1e7a6e',backgroundColor:'rgba(30,122,110,0.08)',fill:true,tension:0.3,pointRadius:4,borderDash:[5,3],borderWidth:2}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function makeTotalCompare(win) {
+  destroyChart('cmp_total');
+  const indT  = SEGS.map(s=>total(DATA[win].India[s]||{}));
+  const intlT = SEGS.map(s=>total(DATA[win].International[s]||{}));
+  const inst = new Chart(document.getElementById('cmp_total'), {
+    type:'bar',
+    data:{labels:SEGS,datasets:[
+      {label:'India',data:indT,backgroundColor:'#2c5f8a',borderRadius:3,borderWidth:0},
+      {label:'International',data:intlT,backgroundColor:'#1e7a6e',borderRadius:3,borderWidth:0}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{callback:v=>'₹'+fmtR(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
+    }
+  });
+  registerChart('cmp_total', inst);
+}
+
+// Lifetime vs D30 tab
+function makeGroupedCompare(canvasId, region, seg) {
+  destroyChart(canvasId);
+  const skus = ALL_SKUS.filter(k => (DATA.lifetime[region][seg]||{})[k] || (DATA.d30[region][seg]||{})[k]);
+  const lt = DATA.lifetime[region][seg]||{};
+  const d3 = DATA.d30[region][seg]||{};
+  const ltT=total(lt), d3T=total(d3);
+  const inst = new Chart(document.getElementById(canvasId), {
+    type:'bar',
+    data:{
+      labels:skus.map(s=>s.replace(/_/g,' ')),
+      datasets:[
+        {label:'Lifetime',data:skus.map(s=>pct(lt[s]||0,ltT)),backgroundColor:'rgba(44,95,138,0.7)',borderRadius:2,borderWidth:0},
+        {label:'D30',data:skus.map(s=>pct(d3[s]||0,d3T)),backgroundColor:'rgba(30,122,110,0.7)',borderRadius:2,borderWidth:0}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11},maxRotation:30}},y:{ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function makeDeltaTable(containerId, region) {
+  const skus = ALL_SKUS.filter(k => SEGS.some(s => (DATA.lifetime[region][s]||{})[k] || (DATA.d30[region][s]||{})[k]));
+  const totals_lt={}, totals_d3={};
+  SEGS.forEach(s=>{totals_lt[s]=total(DATA.lifetime[region][s]||{}); totals_d3[s]=total(DATA.d30[region][s]||{});});
+
+  let html=`<table><thead><tr><th>SKU</th>
+    ${SEGS.map(s=>`<th class="right">${s}<br><span style="font-weight:400;font-size:9px;">D30 − Lifetime</span></th>`).join('')}
+  </tr></thead><tbody>`;
+
+  skus.forEach(sku=>{
+    const deltas=SEGS.map(s=>{
+      const pL=pct((DATA.lifetime[region][s]||{})[sku]||0, totals_lt[s]);
+      const pD=pct((DATA.d30[region][s]||{})[sku]||0, totals_d3[s]);
+      return +(pD-pL).toFixed(1);
+    });
+    if (deltas.every(d=>Math.abs(d)<0.5)) return;
+    html+=`<tr><td>${sku.replace(/_/g,' ')}</td>`;
+    deltas.forEach(d=>{
+      const cls=d>0.5?'delta-pos':d<-0.5?'delta-neg':'';
+      html+=`<td class="mono right ${cls}">${d===0?'—':(d>0?'+':'')+d+'pp'}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function renderIndia(win) {
+  makeStats('india-stats', win, 'India');
+  document.getElementById('india-insight').innerHTML = getInsightText(win,'India');
+  makeStacked('india_stacked', win, 'India', 'india_stacked_leg');
+  makeAbs('india_abs', win, 'India');
+  makeDonut('india_d1', win, 'India', 'q25');
+  makeDonut('india_d2', win, 'India', 'q75');
+  makeDonut('india_d3', win, 'India', 'q90+');
+  makeHeatmap('india_heatmap', win, 'India');
+  makeDetailTable('india_tbody', win, 'India');
+}
+
+function renderIntl(win) {
+  makeStats('intl-stats', win, 'International');
+  document.getElementById('intl-insight').innerHTML = getInsightText(win,'International');
+  makeStacked('intl_stacked', win, 'International', 'intl_stacked_leg');
+  makeAbs('intl_abs', win, 'International');
+  makeDonut('intl_d1', win, 'International', 'q25');
+  makeDonut('intl_d2', win, 'International', 'q75');
+  makeDonut('intl_d3', win, 'International', 'q90+');
+  makeHeatmap('intl_heatmap', win, 'International');
+  makeDetailTable('intl_tbody', win, 'International');
+}
+
+function renderCompare(win) {
+  makeStacked('cmp_india', win, 'India', 'cmp_india_leg');
+  makeStacked('cmp_intl', win, 'International', 'cmp_intl_leg');
+  makeLineCompare('cmp_sp', win, 'SP');
+  makeLineCompare('cmp_hc', win, 'HC_Pack');
+  makeTotalCompare(win);
+}
+
+function renderD30Tab() {
+  makeGroupedCompare('d30cmp_ind_q25', 'India', 'q25');
+  makeGroupedCompare('d30cmp_intl_q25', 'International', 'q25');
+  makeGroupedCompare('d30cmp_ind_q90p', 'India', 'q90+');
+  makeGroupedCompare('d30cmp_intl_q90p', 'International', 'q90+');
+  makeDeltaTable('india_delta_table', 'India');
+  makeDeltaTable('intl_delta_table', 'International');
+}
+
+function setWindow(page, win, btn) {
+  windowState[page] = win;
+  btn.closest('.window-toggle').querySelectorAll('.window-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (page==='india') renderIndia(win);
+  if (page==='intl') renderIntl(win);
+  if (page==='compare') renderCompare(win);
+}
+
+let d30TabRendered = false;
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id==='d15vd30' && !d30TabRendered) { renderD30Tab(); d30TabRendered=true; }
+}
+
+// Init
+renderIndia('lifetime');
+renderIntl('lifetime');
+renderCompare('lifetime');
+</script>
+</body>
+</html>
