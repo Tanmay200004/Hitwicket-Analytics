@@ -102,6 +102,7 @@
   <button class="tab-btn" onclick="showPage('intl',this)">International</button>
   <button class="tab-btn" onclick="showPage('compare',this)">India vs International</button>
   <button class="tab-btn" onclick="showPage('d15vd30',this)">Lifetime vs D30</button>
+  <button class="tab-btn" onclick="showPage('hcsink',this)">HC Sink (D30)</button>
 </div>
 
 <!-- ══════════════ INDIA ══════════════ -->
@@ -652,18 +653,306 @@ function setWindow(page, win, btn) {
 }
 
 let d30TabRendered = false;
+
+// Init
+renderIndia('lifetime');
+renderIntl('lifetime');
+renderCompare('lifetime');
+</script>
+
+<!-- ══════════════ HC SINK (D30) ══════════════ -->
+<div class="page" id="page-hcsink">
+  <div class="section-label">HC Sink Breakdown by Segment — D30 · India (all users completed D30)</div>
+
+  <div class="insight blue">
+    <strong>How to read this:</strong> Values are HC deducted per segment (signs removed). Each segment column is an aggregate across users in that tier. Rows sorted by q90+ spend to surface the highest-impact sinks first. The mix shift across segments reveals which sinks are entry-level vs high-intent vs graduation behaviors.
+  </div>
+
+  <div class="stats-row" id="hc-stats"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>HC sink mix — stacked 100% by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="hc_stacked" role="img" aria-label="HC sink 100% stacked bar by segment"></canvas></div>
+      <div id="hc_stacked_leg" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+    </div>
+    <div class="card">
+      <h3>Absolute HC spend by segment</h3>
+      <div class="chart-wrap-lg"><canvas id="hc_abs" role="img" aria-label="Absolute HC spend by sink per segment"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>HC sink contribution % heatmap</h3>
+    <div class="heatmap-wrap" id="hc_heatmap"></div>
+  </div>
+
+  <div class="section-label" style="margin-top:24px;">Top sinks — segment deep dives</div>
+  <div class="three-col">
+    <div class="card"><h3>q25 — top HC sinks</h3><div class="chart-wrap"><canvas id="hc_q25" role="img" aria-label="q25 HC sink donut"></canvas></div></div>
+    <div class="card"><h3>q90 — top HC sinks</h3><div class="chart-wrap"><canvas id="hc_q90" role="img" aria-label="q90 HC sink donut"></canvas></div></div>
+    <div class="card"><h3>q90+ — top HC sinks</h3><div class="chart-wrap"><canvas id="hc_q90p" role="img" aria-label="q90+ HC sink donut"></canvas></div></div>
+  </div>
+
+  <div class="full-col card">
+    <h3>Full HC sink table — all segments (HC units)</h3>
+    <div style="overflow-x:auto;">
+      <table id="hc_table">
+        <thead><tr>
+          <th>Sink reason</th>
+          <th class="right">q25</th><th class="right">q25 %</th>
+          <th class="right">q50</th><th class="right">q50 %</th>
+          <th class="right">q75</th><th class="right">q75 %</th>
+          <th class="right">q90</th><th class="right">q90 %</th>
+          <th class="right">q90+</th><th class="right">q90+ %</th>
+        </tr></thead>
+        <tbody id="hc_tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── HC Sink Data (signs removed) ──
+const HC_SEGS = ['q25','q50','q75','q90','q90+'];
+const HC_RAW = {
+  ACADEMY_CHARACTER_BOOST:        {q25:210,    q50:204,    q75:1236,   q90:363,    'q90+':15564},
+  ALLIANCE_BATTLE_ROYALE_CHEST:   {q25:0,      q50:250,    q75:250,    q90:0,      'q90+':250},
+  BOUGHT_INGAME_ITEM:             {q25:126800, q50:170950, q75:328600, q90:285300, 'q90+':394350},
+  BOUGHT_OFFER_VIA_HC:            {q25:18885,  q50:34180,  q75:71225,  q90:49585,  'q90+':62465},
+  CASH_PACK_INVESTMENT:           {q25:1300,   q50:3600,   q75:4200,   q90:12700,  'q90+':58300},
+  DAILY_KIT_REFRESH:              {q25:405,    q50:605,    q75:1345,   q90:880,    'q90+':2190},
+  DAILY_KIT_REWARDS:              {q25:5749,   q50:9093,   q75:20322,  q90:21700,  'q90+':39352},
+  DC_ATTEMPTS_PURCHASE:           {q25:1200,   q50:1590,   q75:3720,   q90:3570,   'q90+':2670},
+  ENERGY_PURCHASE:                {q25:4961,   q50:6664,   q75:11839,  q90:7032,   'q90+':9513},
+  EQUIPMENT_PURCHASE:             {q25:11640,  q50:6240,   q75:26680,  q90:35000,  'q90+':369780},
+  EVENT_MILESTONE_PURCHASE:       {q25:500,    q50:500,    q75:1500,   q90:1900,   'q90+':2750},
+  FAST_MODE_INVESTMENT:           {q25:1150,   q50:810,    q75:1690,   q90:705,    'q90+':1190},
+  GACHA_BOX_OPEN_WITH_HITCOINS:   {q25:33550,  q50:47350,  q75:89250,  q90:105000, 'q90+':387150},
+  IN_GAME_CURRENCY_CONVERSION:    {q25:1236,   q50:3530,   q75:7610,   q90:26452,  'q90+':155986},
+  LIVE_MATCHES_ATTEMPT_PURCHASE:  {q25:690,    q50:520,    q75:1780,   q90:1420,   'q90+':840},
+  NETS_BUY:                       {q25:10000,  q50:10000,  q75:23600,  q90:18000,  'q90+':20400},
+  NETS_QUICK_COMPLETE:            {q25:2522,   q50:4346,   q75:6703,   q90:5409,   'q90+':9527},
+  PASSIVE_TRAIT_LEVEL_UP:         {q25:0,      q50:0,      q75:8750,   q90:45000,  'q90+':410000},
+  PAYMENT_REFUNDED:               {q25:160,    q50:0,      q75:1210,   q90:0,      'q90+':0},
+  PLAYER_RENAME:                  {q25:355,    q50:385,    q75:400,    q90:400,    'q90+':595},
+  PLAYER_TRAINING_COST:           {q25:6436,   q50:6149,   q75:16947,  q90:46053,  'q90+':118731},
+  PLAYER_UPGRADE_QUICK_COMPLETE:  {q25:17164,  q50:36203,  q75:111842, q90:120087, 'q90+':494315},
+  PROPS_BUY_INVESTMENT:           {q25:6100,   q50:6550,   q75:14400,  q90:9950,   'q90+':20000},
+  PURCHASED_ELITE_DEALS:          {q25:6400,   q50:13460,  q75:29300,  q90:72700,  'q90+':342870},
+  PURCHASED_FROM_STORE:           {q25:835,    q50:1125,   q75:4465,   q90:2435,   'q90+':3685},
+  PURCHASED_IN_MATCH:             {q25:765,    q50:1195,   q75:2195,   q90:1800,   'q90+':1435},
+  PURCHASE_ENHANCER:              {q25:3800,   q50:4300,   q75:15800,  q90:29300,  'q90+':308500},
+  RENAME:                         {q25:240,    q50:120,    q75:80,     q90:80,     'q90+':240},
+  RESET_PASSIVE_LEVELS:           {q25:40,     q50:60,     q75:160,    q90:100,    'q90+':185},
+  SEASON_PASS_TIER_BUY_INVESTMENT:{q25:1960,   q50:5120,   q75:7000,   q90:12440,  'q90+':26240},
+  SPB_10X_OPEN:                   {q25:9000,   q50:11250,  q75:108000, q90:297000, 'q90+':1892250},
+  YC_QUALIFIER_ATTEMPT_PURCHASE:  {q25:5410,   q50:4250,   q75:11560,  q90:6370,   'q90+':6120},
+  change_opponent:                {q25:195,    q50:230,    q75:625,    q90:455,    'q90+':505}
+};
+
+// Sort sinks by q90+ desc for display
+const HC_SINKS_SORTED = Object.keys(HC_RAW).sort((a,b) => HC_RAW[b]['q90+'] - HC_RAW[a]['q90+']);
+
+// Top N sinks for charts (others bundled)
+const HC_TOP_N = 12;
+const HC_TOP_SINKS = HC_SINKS_SORTED.slice(0, HC_TOP_N);
+
+// Colors for HC sinks
+const HC_COLORS = ['#2c5f8a','#1e7a6e','#7b3f9e','#c49a1a','#b03a2e','#3a8a5f','#a05c0a','#4a7ab5','#888780','#c4884a','#5c8a2c','#8a2c5c','#2c8a7b'];
+const SINK_COLOR = {};
+HC_TOP_SINKS.forEach((s,i) => SINK_COLOR[s] = HC_COLORS[i % HC_COLORS.length]);
+SINK_COLOR['Other'] = '#b0b0a0';
+
+function hcTotal(seg) {
+  return Object.values(HC_RAW).reduce((a,v) => a + (v[seg]||0), 0);
+}
+
+function hcPct(sink, seg) {
+  const t = hcTotal(seg);
+  return t ? +((HC_RAW[sink][seg]||0) / t * 100).toFixed(1) : 0;
+}
+
+function fmtHC(n) {
+  if (!n) return '—';
+  return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : ''+n;
+}
+
+function buildHCStats() {
+  document.getElementById('hc-stats').innerHTML = HC_SEGS.map(s => {
+    const t = hcTotal(s);
+    const topSink = HC_SINKS_SORTED[0];
+    const topPct = Math.round((HC_RAW[topSink][s]||0) / t * 100);
+    // find actual top for this seg
+    const segTop = Object.entries(HC_RAW).sort((a,b)=>(b[1][s]||0)-(a[1][s]||0))[0];
+    const segTopPct = Math.round((segTop[1][s]||0)/t*100);
+    return `<div class="stat-card">
+      <div class="label">${s} total HC</div>
+      <div class="value">${fmtHC(t)}</div>
+      <div class="sub">${segTop[0].replace(/_/g,' ')} · ${segTopPct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function getChartSinks(seg) {
+  // For a given segment, bundle small sinks into "Other"
+  const sorted = Object.keys(HC_RAW).sort((a,b) => (HC_RAW[b][seg]||0) - (HC_RAW[a][seg]||0));
+  return sorted.slice(0, HC_TOP_N);
+}
+
+function buildHCLegend(elId, sinks) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = sinks.map(s =>
+    `<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
+      <span style="width:9px;height:9px;border-radius:2px;background:${SINK_COLOR[s]||'#aaa'};flex-shrink:0;"></span>${s.replace(/_/g,' ')}
+    </span>`).join('');
+}
+
+function buildHCStacked() {
+  destroyChart('hc_stacked');
+  const datasets = HC_TOP_SINKS.map((sink,i) => ({
+    label: sink.replace(/_/g,' '),
+    data: HC_SEGS.map(s => { const t=hcTotal(s); return t ? +((HC_RAW[sink][s]||0)/t*100).toFixed(1) : 0; }),
+    backgroundColor: HC_COLORS[i % HC_COLORS.length], borderWidth: 0
+  }));
+  // "Other" dataset
+  const otherSinks = HC_SINKS_SORTED.slice(HC_TOP_N);
+  if (otherSinks.length) {
+    datasets.push({
+      label: 'Other',
+      data: HC_SEGS.map(s => {
+        const t=hcTotal(s);
+        const otherSum = otherSinks.reduce((a,k)=>a+(HC_RAW[k][s]||0),0);
+        return t ? +(otherSum/t*100).toFixed(1) : 0;
+      }),
+      backgroundColor: '#c8c8b8', borderWidth: 0
+    });
+  }
+  const inst = new Chart(document.getElementById('hc_stacked'), {
+    type:'bar', data:{ labels: HC_SEGS, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}} },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},
+        y:{stacked:true,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart('hc_stacked', inst);
+  buildHCLegend('hc_stacked_leg', [...HC_TOP_SINKS, ...(otherSinks.length?['Other']:[])]);
+}
+
+function buildHCAbs() {
+  destroyChart('hc_abs');
+  const datasets = HC_TOP_SINKS.map((sink,i) => ({
+    label: sink.replace(/_/g,' '),
+    data: HC_SEGS.map(s => HC_RAW[sink][s]||0),
+    backgroundColor: HC_COLORS[i % HC_COLORS.length], borderWidth:0, borderRadius:2
+  }));
+  const inst = new Chart(document.getElementById('hc_abs'), {
+    type:'bar', data:{labels:HC_SEGS,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtHC(c.parsed.y)} HC`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{ticks:{callback:v=>fmtHC(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart('hc_abs', inst);
+}
+
+function buildHCDonut(canvasId, seg) {
+  destroyChart(canvasId);
+  const topSinks = Object.keys(HC_RAW).sort((a,b)=>(HC_RAW[b][seg]||0)-(HC_RAW[a][seg]||0)).slice(0,10);
+  const vals = topSinks.map(s => HC_RAW[s][seg]||0);
+  const t = vals.reduce((a,b)=>a+b,0);
+  const inst = new Chart(document.getElementById(canvasId), {
+    type:'doughnut',
+    data:{
+      labels: topSinks.map(s=>s.replace(/_/g,' ')),
+      datasets:[{data:vals, backgroundColor:topSinks.map((_,i)=>HC_COLORS[i%HC_COLORS.length]), borderWidth:1,borderColor:'#fff'}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:'right',labels:{boxWidth:9,padding:6,font:{size:10}}},
+        tooltip:{callbacks:{label:c=>` ${c.label}: ${fmtHC(c.parsed)} HC (${(c.parsed/t*100).toFixed(1)}%)`}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function buildHCHeatmap() {
+  const totals = {};
+  HC_SEGS.forEach(s => totals[s] = hcTotal(s));
+  let html = `<table class="heatmap-table"><thead><tr>
+    <th class="sku-col">Sink reason</th>
+    ${HC_SEGS.map(s=>`<th>${s}<br><span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;">${fmtHC(totals[s])} HC</span></th>`).join('')}
+  </tr></thead><tbody>`;
+  HC_SINKS_SORTED.forEach(sink => {
+    const anyVal = HC_SEGS.some(s => HC_RAW[sink][s] > 0);
+    if (!anyVal) return;
+    html += `<tr><td class="sku-name">${sink.replace(/_/g,' ')}</td>`;
+    HC_SEGS.forEach(s => {
+      const v = HC_RAW[sink][s]||0;
+      const p = totals[s] ? +(v/totals[s]*100).toFixed(1) : 0;
+      const intensity = Math.min(p/35, 1);
+      const bg = `rgba(30,122,110,${(intensity*0.65).toFixed(2)})`;
+      const fg = intensity > 0.35 ? '#fff' : 'var(--text)';
+      html += `<td class="pct-cell" style="background:${bg};color:${fg};">${p>=0.5?p.toFixed(1)+'%':''}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('hc_heatmap').innerHTML = html;
+}
+
+function buildHCTable() {
+  const totals = {};
+  HC_SEGS.forEach(s => totals[s] = hcTotal(s));
+  let html = '';
+  HC_SINKS_SORTED.forEach(sink => {
+    const anyVal = HC_SEGS.some(s => HC_RAW[sink][s] > 0);
+    if (!anyVal) return;
+    html += `<tr><td>${sink.replace(/_/g,' ')}</td>`;
+    HC_SEGS.forEach(s => {
+      const v = HC_RAW[sink][s]||0;
+      const p = totals[s] ? +(v/totals[s]*100).toFixed(1) : 0;
+      html += `<td class="mono right">${v ? fmtHC(v) : '—'}</td>`;
+      html += `<td class="right" style="font-size:11px;color:var(--text-muted);">${p>=0.5?p.toFixed(1)+'%':''}</td>`;
+    });
+    html += `</tr>`;
+  });
+  document.getElementById('hc_tbody').innerHTML = html;
+}
+
+function renderHCSink() {
+  buildHCStats();
+  buildHCStacked();
+  buildHCAbs();
+  buildHCDonut('hc_q25', 'q25');
+  buildHCDonut('hc_q90', 'q90');
+  buildHCDonut('hc_q90p', 'q90+');
+  buildHCHeatmap();
+  buildHCTable();
+}
+
+// Patch showPage to handle hcsink tab
+let hcSinkRendered = false;
+const _origShowPage = showPage;
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
   if (id==='d15vd30' && !d30TabRendered) { renderD30Tab(); d30TabRendered=true; }
+  if (id==='hcsink' && !hcSinkRendered) { renderHCSink(); hcSinkRendered=true; }
 }
-
-// Init
-renderIndia('lifetime');
-renderIntl('lifetime');
-renderCompare('lifetime');
 </script>
 </body>
 </html>
