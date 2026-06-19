@@ -103,6 +103,7 @@
   <button class="tab-btn" onclick="showPage('compare',this)">India vs International</button>
   <button class="tab-btn" onclick="showPage('d15vd30',this)">Lifetime vs D30</button>
   <button class="tab-btn" onclick="showPage('hcsink',this)">HC Sink (D30)</button>
+  <button class="tab-btn" onclick="showPage('retention',this)">Retention</button>
 </div>
 
 <!-- ══════════════ INDIA ══════════════ -->
@@ -942,16 +943,320 @@ function renderHCSink() {
   buildHCTable();
 }
 
-// Patch showPage to handle hcsink tab
+// ── showPage ──
 let hcSinkRendered = false;
-const _origShowPage = showPage;
+let retentionRendered = false;
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
-  if (id==='d15vd30' && !d30TabRendered) { renderD30Tab(); d30TabRendered=true; }
-  if (id==='hcsink' && !hcSinkRendered) { renderHCSink(); hcSinkRendered=true; }
+  if (id==='d15vd30'   && !d30TabRendered)    { renderD30Tab();    d30TabRendered=true; }
+  if (id==='hcsink'    && !hcSinkRendered)    { renderHCSink();    hcSinkRendered=true; }
+  if (id==='retention' && !retentionRendered) { renderRetention(); retentionRendered=true; }
+}
+</script>
+
+<!-- ══════════════ RETENTION PAGE ══════════════ -->
+<div class="page" id="page-retention">
+  <div class="section-label">Early Whale Retention — D3 · D7 · D30 by Segment</div>
+
+  <div class="insight blue">
+    <strong>How to read:</strong> Retention % is relative to the total whale count in each segment (D3 retained / total whales etc.). Higher segments show consistently higher retention at every checkpoint — confirming that D15 revenue tier is a strong proxy for engagement depth, not just spend. D30 retention gap between q25 and q90+ is the key LTV multiplier.
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:12px;color:var(--text-muted);">View:</span>
+    <div class="window-toggle">
+      <button class="window-btn active" onclick="setRetView('overall',this)">Overall</button>
+      <button class="window-btn" onclick="setRetView('india',this)">India</button>
+      <button class="window-btn" onclick="setRetView('intl',this)">International</button>
+      <button class="window-btn" onclick="setRetView('compare',this)">India vs Intl</button>
+    </div>
+  </div>
+
+  <!-- Overall -->
+  <div id="ret-overall">
+    <div class="stats-row" id="ret-overall-stats"></div>
+    <div class="two-col">
+      <div class="card">
+        <h3>Retention % by segment — D3 / D7 / D30</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_overall_pct" role="img" aria-label="Overall retention % by segment"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Retained user count by segment</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_overall_abs" role="img" aria-label="Overall retained user counts"></canvas></div>
+      </div>
+    </div>
+    <div class="full-col card">
+      <h3>Retention table — Overall</h3>
+      <div id="ret_overall_table"></div>
+    </div>
+  </div>
+
+  <!-- India -->
+  <div id="ret-india" style="display:none;">
+    <div class="stats-row" id="ret-india-stats"></div>
+    <div class="two-col">
+      <div class="card">
+        <h3>India — Retention % by segment</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_india_pct" role="img" aria-label="India retention % by segment"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>India — Retained user count</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_india_abs" role="img" aria-label="India retained user counts"></canvas></div>
+      </div>
+    </div>
+    <div class="full-col card">
+      <h3>Retention table — India</h3>
+      <div id="ret_india_table"></div>
+    </div>
+  </div>
+
+  <!-- International -->
+  <div id="ret-intl" style="display:none;">
+    <div class="stats-row" id="ret-intl-stats"></div>
+    <div class="two-col">
+      <div class="card">
+        <h3>International — Retention % by segment</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_intl_pct" role="img" aria-label="International retention % by segment"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>International — Retained user count</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_intl_abs" role="img" aria-label="International retained user counts"></canvas></div>
+      </div>
+    </div>
+    <div class="full-col card">
+      <h3>Retention table — International</h3>
+      <div id="ret_intl_table"></div>
+    </div>
+  </div>
+
+  <!-- Compare -->
+  <div id="ret-compare" style="display:none;">
+    <div class="insight green"><strong>India vs International:</strong> International q90+ leads on D30 retention (75% vs 71%), but India q90+ edges ahead at D3 (90% vs 97% International). Lower segments show India ahead at D3 but falling behind at D30, suggesting Indian lower-tier early whales churn more post-D7.</div>
+    <div class="two-col">
+      <div class="card">
+        <h3>D30 retention % — India vs International</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_cmp_d30" role="img" aria-label="D30 retention comparison India vs International"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>D7 retention % — India vs International</h3>
+        <div class="chart-wrap-lg"><canvas id="ret_cmp_d7" role="img" aria-label="D7 retention comparison India vs International"></canvas></div>
+      </div>
+    </div>
+    <div class="full-col card">
+      <h3>D30 retention gap (International − India) by segment</h3>
+      <div id="ret_cmp_table"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RET_SEGS = ['q25','q50','q75','q90','q90+'];
+
+const RET = {
+  overall: {
+    whales: {q25:689, q50:676, q75:782, q90:429, 'q90+':294},
+    D3:     {q25:554, q50:562, q75:684, q90:396, 'q90+':272},
+    D7:     {q25:380, q50:392, q75:608, q90:361, 'q90+':252},
+    D30:    {q25:213, q50:213, q75:451, q90:254, 'q90+':213},
+    D3pct:  {q25:80,  q50:83,  q75:87,  q90:92,  'q90+':93},
+    D7pct:  {q25:55,  q50:58,  q75:78,  q90:84,  'q90+':86},
+    D30pct: {q25:31,  q50:32,  q75:58,  q90:59,  'q90+':72}
+  },
+  india: {
+    whales: {q25:451, q50:367, q75:516, q90:258, 'q90+':183},
+    D3:     {q25:365, q50:308, q75:457, q90:234, 'q90+':164},
+    D7:     {q25:269, q50:232, q75:410, q90:213, 'q90+':154},
+    D30:    {q25:164, q50:151, q75:318, q90:164, 'q90+':130},
+    D3pct:  {q25:81,  q50:84,  q75:89,  q90:91,  'q90+':90},
+    D7pct:  {q25:60,  q50:63,  q75:79,  q90:83,  'q90+':84},
+    D30pct: {q25:36,  q50:41,  q75:62,  q90:64,  'q90+':71}
+  },
+  intl: {
+    whales: {q25:238, q50:309, q75:266, q90:171, 'q90+':111},
+    D3:     {q25:189, q50:254, q75:227, q90:162, 'q90+':108},
+    D7:     {q25:111, q50:160, q75:198, q90:148, 'q90+':98},
+    D30:    {q25:49,  q50:62,  q75:133, q90:90,  'q90+':83},
+    D3pct:  {q25:79,  q50:82,  q75:85,  q90:95,  'q90+':97},
+    D7pct:  {q25:47,  q50:52,  q75:74,  q90:87,  'q90+':88},
+    D30pct: {q25:21,  q50:20,  q75:50,  q90:53,  'q90+':75}
+  }
+};
+
+let retView = 'overall';
+
+function setRetView(view, btn) {
+  retView = view;
+  btn.closest('.window-toggle').querySelectorAll('.window-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['overall','india','intl','compare'].forEach(v => {
+    document.getElementById('ret-'+v).style.display = v===view ? '' : 'none';
+  });
+  if (view==='compare') renderRetCompare();
+}
+
+function buildRetStats(containerId, key) {
+  const d = RET[key];
+  document.getElementById(containerId).innerHTML = RET_SEGS.map(s => `
+    <div class="stat-card">
+      <div class="label">${s} · ${d.whales[s]} whales</div>
+      <div class="value">${d.D30pct[s]}%</div>
+      <div class="sub">D30 · D7: ${d.D7pct[s]}% · D3: ${d.D3pct[s]}%</div>
+    </div>`).join('');
+}
+
+function buildRetPctChart(canvasId, key) {
+  destroyChart(canvasId);
+  const d = RET[key];
+  const inst = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: RET_SEGS,
+      datasets: [
+        {label:'D3 %', data: RET_SEGS.map(s=>d.D3pct[s]),  backgroundColor:'rgba(44,95,138,0.85)',  borderRadius:3, borderWidth:0},
+        {label:'D7 %', data: RET_SEGS.map(s=>d.D7pct[s]),  backgroundColor:'rgba(30,122,110,0.85)', borderRadius:3, borderWidth:0},
+        {label:'D30 %',data: RET_SEGS.map(s=>d.D30pct[s]), backgroundColor:'rgba(160,92,10,0.85)',  borderRadius:3, borderWidth:0}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}%`}} },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function buildRetAbsChart(canvasId, key) {
+  destroyChart(canvasId);
+  const d = RET[key];
+  const inst = new Chart(document.getElementById(canvasId), {
+    type:'bar',
+    data:{
+      labels: RET_SEGS,
+      datasets:[
+        {label:'Total whales', data:RET_SEGS.map(s=>d.whales[s]), backgroundColor:'rgba(180,180,170,0.5)', borderRadius:3, borderWidth:0},
+        {label:'D3 retained',  data:RET_SEGS.map(s=>d.D3[s]),     backgroundColor:'rgba(44,95,138,0.85)',  borderRadius:3, borderWidth:0},
+        {label:'D7 retained',  data:RET_SEGS.map(s=>d.D7[s]),     backgroundColor:'rgba(30,122,110,0.85)', borderRadius:3, borderWidth:0},
+        {label:'D30 retained', data:RET_SEGS.map(s=>d.D30[s]),    backgroundColor:'rgba(160,92,10,0.85)',  borderRadius:3, borderWidth:0}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+  registerChart(canvasId, inst);
+}
+
+function buildRetTable(containerId, key) {
+  const d = RET[key];
+  let html = `<table><thead><tr>
+    <th>Segment</th><th class="right">Whales</th>
+    <th class="right">D3</th><th class="right">D3 %</th>
+    <th class="right">D7</th><th class="right">D7 %</th>
+    <th class="right">D30</th><th class="right">D30 %</th>
+    <th class="right">D3→D30 drop</th>
+  </tr></thead><tbody>`;
+  RET_SEGS.forEach(s => {
+    const drop = d.D3pct[s] - d.D30pct[s];
+    html += `<tr>
+      <td><strong>${s}</strong></td>
+      <td class="mono right">${d.whales[s]}</td>
+      <td class="mono right">${d.D3[s]}</td>
+      <td class="mono right" style="color:var(--accent);">${d.D3pct[s]}%</td>
+      <td class="mono right">${d.D7[s]}</td>
+      <td class="mono right" style="color:var(--teal);">${d.D7pct[s]}%</td>
+      <td class="mono right">${d.D30[s]}</td>
+      <td class="mono right" style="color:var(--amber);">${d.D30pct[s]}%</td>
+      <td class="mono right" style="color:var(--red);">-${drop}pp</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function renderRetCompare() {
+  // D30 comparison
+  destroyChart('ret_cmp_d30');
+  destroyChart('ret_cmp_d7');
+  const inst1 = new Chart(document.getElementById('ret_cmp_d30'), {
+    type:'bar',
+    data:{labels:RET_SEGS, datasets:[
+      {label:'India D30',         data:RET_SEGS.map(s=>RET.india.D30pct[s]),  backgroundColor:'rgba(44,95,138,0.85)',  borderRadius:3,borderWidth:0},
+      {label:'International D30', data:RET_SEGS.map(s=>RET.intl.D30pct[s]),   backgroundColor:'rgba(30,122,110,0.85)', borderRadius:3,borderWidth:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+  registerChart('ret_cmp_d30', inst1);
+
+  const inst2 = new Chart(document.getElementById('ret_cmp_d7'), {
+    type:'bar',
+    data:{labels:RET_SEGS, datasets:[
+      {label:'India D7',         data:RET_SEGS.map(s=>RET.india.D7pct[s]),  backgroundColor:'rgba(44,95,138,0.85)',  borderRadius:3,borderWidth:0},
+      {label:'International D7', data:RET_SEGS.map(s=>RET.intl.D7pct[s]),   backgroundColor:'rgba(30,122,110,0.85)', borderRadius:3,borderWidth:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+  registerChart('ret_cmp_d7', inst2);
+
+  // delta table
+  let html = `<table><thead><tr>
+    <th>Segment</th>
+    <th class="right">India D30%</th><th class="right">Intl D30%</th><th class="right">Delta (Intl−India)</th>
+    <th class="right">India D7%</th><th class="right">Intl D7%</th><th class="right">Delta (Intl−India)</th>
+  </tr></thead><tbody>`;
+  RET_SEGS.forEach(s => {
+    const d30delta = RET.intl.D30pct[s] - RET.india.D30pct[s];
+    const d7delta  = RET.intl.D7pct[s]  - RET.india.D7pct[s];
+    const d30cls = d30delta > 0 ? 'delta-pos' : d30delta < 0 ? 'delta-neg' : '';
+    const d7cls  = d7delta  > 0 ? 'delta-pos' : d7delta  < 0 ? 'delta-neg' : '';
+    html += `<tr>
+      <td><strong>${s}</strong></td>
+      <td class="mono right">${RET.india.D30pct[s]}%</td>
+      <td class="mono right">${RET.intl.D30pct[s]}%</td>
+      <td class="mono right ${d30cls}">${d30delta>0?'+':''}${d30delta}pp</td>
+      <td class="mono right">${RET.india.D7pct[s]}%</td>
+      <td class="mono right">${RET.intl.D7pct[s]}%</td>
+      <td class="mono right ${d7cls}">${d7delta>0?'+':''}${d7delta}pp</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('ret_cmp_table').innerHTML = html;
+}
+
+function renderRetention() {
+  buildRetStats('ret-overall-stats', 'overall');
+  buildRetPctChart('ret_overall_pct', 'overall');
+  buildRetAbsChart('ret_overall_abs', 'overall');
+  buildRetTable('ret_overall_table', 'overall');
+
+  buildRetStats('ret-india-stats', 'india');
+  buildRetPctChart('ret_india_pct', 'india');
+  buildRetAbsChart('ret_india_abs', 'india');
+  buildRetTable('ret_india_table', 'india');
+
+  buildRetStats('ret-intl-stats', 'intl');
+  buildRetPctChart('ret_intl_pct', 'intl');
+  buildRetAbsChart('ret_intl_abs', 'intl');
+  buildRetTable('ret_intl_table', 'intl');
 }
 </script>
 </body>
