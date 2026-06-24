@@ -104,6 +104,7 @@
   <button class="tab-btn" onclick="showPage('d15vd30',this)">Lifetime vs D30</button>
   <button class="tab-btn" onclick="showPage('hcsink',this)">HC Sink (D30)</button>
   <button class="tab-btn" onclick="showPage('retention',this)">Retention</button>
+  <button class="tab-btn" onclick="showPage('gacha',this)">Gacha Flag</button>
 </div>
 
 <!-- ══════════════ INDIA ══════════════ -->
@@ -946,6 +947,7 @@ function renderHCSink() {
 // ── showPage ──
 let hcSinkRendered = false;
 let retentionRendered = false;
+let gachaRendered = false;
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -954,6 +956,7 @@ function showPage(id, btn) {
   if (id==='d15vd30'   && !d30TabRendered)    { renderD30Tab();    d30TabRendered=true; }
   if (id==='hcsink'    && !hcSinkRendered)    { renderHCSink();    hcSinkRendered=true; }
   if (id==='retention' && !retentionRendered) { renderRetention(); retentionRendered=true; }
+  if (id==='gacha'     && !gachaRendered)     { renderGacha();     gachaRendered=true; }
 }
 </script>
 
@@ -1257,6 +1260,251 @@ function renderRetention() {
   buildRetPctChart('ret_intl_pct', 'intl');
   buildRetAbsChart('ret_intl_abs', 'intl');
   buildRetTable('ret_intl_table', 'intl');
+}
+</script>
+
+<!-- ══════════════ GACHA FLAG PAGE ══════════════ -->
+<div class="page" id="page-gacha">
+  <div class="section-label">Gacha User Flag Analysis — HC-Pack Dominant Early Whales · D30</div>
+
+  <div class="insight blue">
+    <strong>Base:</strong> Early whales where HC_Pack ≥50% of D30 revenue (255 users total — 64 gacha=0, 159 gacha=1).
+    <strong>gacha_flag=1</strong> = spent ≥50% of those hitcoins on gacha pulls (SPB_10X / GACHA_BOX).
+    <strong>gacha_flag=0</strong> = HC deployed into upgrades, equipment, elite deals etc.
+    Both groups are identical in purchase behaviour — the flag captures only what they do with HC after buying it.
+  </div>
+
+  <div class="insight amber">
+    <strong>Pity context:</strong> WC character pity is <strong>75 pulls</strong> with a 1% lucky chance per pull before pity hits.
+    gacha=1 median pulls at D30 = 13, top decile = 62 — meaning even the heaviest pullers in this cohort haven't hit pity.
+    Only 38/159 gacha=1 users got a WC character (24%), mostly via lucky pulls. Most are spending HC on an incomplete loop — committed to gacha but not deep enough to complete the pity cycle within 30 days.
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stats-row" style="grid-template-columns: repeat(4,1fr);">
+    <div class="stat-card">
+      <div class="label">gacha=0 users</div><div class="value">64</div>
+      <div class="sub">HC buyers → upgrades/equipment</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">gacha=1 users</div><div class="value">159</div>
+      <div class="sub">HC buyers → gacha pulls</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ARPPU gap</div><div class="value">1.8×</div>
+      <div class="sub">₹18,359 (g=0) vs ₹10,153 (g=1)</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">D30 retention gap</div><div class="value">9pp</div>
+      <div class="sub">46% (g=0) vs 37% (g=1)</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- Retention comparison -->
+    <div class="card">
+      <h3>Retention — gacha=0 vs gacha=1</h3>
+      <div class="chart-wrap-lg"><canvas id="gacha_ret" role="img" aria-label="Gacha flag retention comparison"></canvas></div>
+    </div>
+    <!-- Revenue comparison -->
+    <div class="card">
+      <h3>Revenue metrics — gacha=0 vs gacha=1</h3>
+      <div class="chart-wrap-lg"><canvas id="gacha_rev" role="img" aria-label="Gacha flag revenue comparison"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- Pull distribution -->
+    <div class="card">
+      <h3>Pull distribution (D30) — quartiles</h3>
+      <div class="chart-wrap"><canvas id="gacha_pulls" role="img" aria-label="Pull distribution quartiles by gacha flag"></canvas></div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+        Pity threshold = <strong style="color:var(--red);">75 pulls</strong> · 
+        Lucky chance = <strong>1% per pull</strong> before pity · 
+        Even q90 of gacha=1 (62 pulls) is below pity
+      </div>
+    </div>
+    <!-- WC character -->
+    <div class="card">
+      <h3>WC character acquired by D30</h3>
+      <div class="chart-wrap"><canvas id="gacha_wc" role="img" aria-label="WC character acquisition by gacha flag"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>Summary comparison table</h3>
+    <table>
+      <thead><tr>
+        <th>Metric</th>
+        <th class="right">gacha=0 (n=64)</th>
+        <th class="right">gacha=1 (n=159)</th>
+        <th class="right">Delta / ratio</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>D3 Retention</td><td class="mono right">81%</td><td class="mono right">81%</td><td class="mono right" style="color:var(--text-muted);">0pp</td></tr>
+        <tr><td>D7 Retention</td><td class="mono right">63%</td><td class="mono right">59%</td><td class="mono right delta-neg">−4pp</td></tr>
+        <tr><td>D30 Retention</td><td class="mono right">46%</td><td class="mono right">37%</td><td class="mono right delta-neg">−9pp</td></tr>
+        <tr><td>D30 Total Revenue</td><td class="mono right">₹17,07,384</td><td class="mono right">₹16,44,825</td><td class="mono right delta-neg">−₹62,559</td></tr>
+        <tr><td>D30 Median Revenue (q50)</td><td class="mono right">₹4,896</td><td class="mono right">₹4,354</td><td class="mono right delta-neg">−₹542</td></tr>
+        <tr><td>ARPPU</td><td class="mono right">₹18,359</td><td class="mono right">₹10,153</td><td class="mono right delta-neg">−₹8,206 (1.8×)</td></tr>
+        <tr><td>Pulls — q25</td><td class="mono right">2</td><td class="mono right">10.5</td><td class="mono right" style="color:var(--text-muted);">+8.5</td></tr>
+        <tr><td>Pulls — q50 (median)</td><td class="mono right">8.5</td><td class="mono right">13</td><td class="mono right" style="color:var(--text-muted);">+4.5</td></tr>
+        <tr><td>Pulls — q75</td><td class="mono right">21.25</td><td class="mono right">29</td><td class="mono right" style="color:var(--text-muted);">+7.75</td></tr>
+        <tr><td>Pulls — q90</td><td class="mono right">56.8</td><td class="mono right">62</td><td class="mono right" style="color:var(--text-muted);">+5.2</td></tr>
+        <tr><td>WC character acquired</td><td class="mono right">8 / 64 (12.5%)</td><td class="mono right">38 / 159 (23.9%)</td><td class="mono right delta-pos">+11.4pp</td></tr>
+        <tr><td>Pity threshold</td><td class="mono right" colspan="2" style="text-align:center;color:var(--red);">75 pulls — no user in either group hit pity at D30</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="full-col">
+    <div class="insight red">
+      <strong>The incomplete loop problem:</strong> gacha=1 users are spending HC on pulls but 76% (121/159) are not getting a WC character by D30.
+      The median gacha=1 user has done 13 pulls — they need 62 more to hit pity. At current HC spend velocity, most will churn before completing the cycle.
+      This is a retention risk embedded in the gacha mechanic itself for early whales: enough engagement to spend, not enough to be rewarded.
+    </div>
+    <div class="insight green">
+      <strong>gacha=0 users show what healthy HC deployment looks like:</strong> fewer pulls (median 8.5), HC redirected into upgrades and equipment, 1.8× higher ARPPU, 9pp better D30 retention.
+      These users found a progression loop that keeps them in the game. The product question is whether gacha=1 users can be nudged toward similar behaviour — either by making the pity cycle achievable within D30, or by surfacing upgrade/equipment sinks more prominently to HC buyers.
+    </div>
+  </div>
+</div>
+
+<script>
+function renderGacha() {
+  // Retention chart
+  destroyChart('gacha_ret');
+  const retInst = new Chart(document.getElementById('gacha_ret'), {
+    type: 'bar',
+    data: {
+      labels: ['D3', 'D7', 'D30'],
+      datasets: [
+        { label: 'gacha=0 (n=64)',  data: [81, 63, 46], backgroundColor: 'rgba(44,95,138,0.85)',  borderRadius: 4, borderWidth: 0 },
+        { label: 'gacha=1 (n=159)', data: [81, 59, 37], backgroundColor: 'rgba(176,58,46,0.85)',  borderRadius: 4, borderWidth: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y}%` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        y: { max: 100, ticks: { callback: v => v+'%', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+  registerChart('gacha_ret', retInst);
+
+  // Revenue chart
+  destroyChart('gacha_rev');
+  const revInst = new Chart(document.getElementById('gacha_rev'), {
+    type: 'bar',
+    data: {
+      labels: ['ARPPU (₹)', 'Median D30 Rev q50 (₹)'],
+      datasets: [
+        { label: 'gacha=0', data: [18359, 4896], backgroundColor: 'rgba(44,95,138,0.85)',  borderRadius: 4, borderWidth: 0 },
+        { label: 'gacha=1', data: [10153, 4354], backgroundColor: 'rgba(176,58,46,0.85)',  borderRadius: 4, borderWidth: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ₹${Math.round(c.parsed.y).toLocaleString('en-IN')}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { ticks: { callback: v => '₹'+(v>=1e6?(v/1e6).toFixed(1)+'L':v>=1e3?(v/1e3).toFixed(0)+'K':v), font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+  registerChart('gacha_rev', revInst);
+
+  // Pull distribution
+  destroyChart('gacha_pulls');
+  const pullInst = new Chart(document.getElementById('gacha_pulls'), {
+    type: 'bar',
+    data: {
+      labels: ['q25', 'q50 (median)', 'q75', 'q90'],
+      datasets: [
+        { label: 'gacha=0', data: [2, 8.5, 21.25, 56.8], backgroundColor: 'rgba(44,95,138,0.85)',  borderRadius: 4, borderWidth: 0 },
+        { label: 'gacha=1', data: [10.5, 13, 29, 62],    backgroundColor: 'rgba(176,58,46,0.85)',  borderRadius: 4, borderWidth: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} pulls` } },
+        annotation: {}
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          ticks: { font: { size: 11 } },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          max: 80
+        }
+      }
+    }
+  });
+  // Draw pity line manually via afterDraw plugin
+  Chart.register({
+    id: 'pityLine',
+    afterDraw(chart) {
+      if (chart.canvas.id !== 'gacha_pulls') return;
+      const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+      const yPos = y.getPixelForValue(75);
+      ctx.save();
+      ctx.strokeStyle = '#b03a2e';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(left, yPos);
+      ctx.lineTo(right, yPos);
+      ctx.stroke();
+      ctx.fillStyle = '#b03a2e';
+      ctx.font = '11px DM Sans, sans-serif';
+      ctx.fillText('Pity = 75', right - 70, yPos - 5);
+      ctx.restore();
+    }
+  });
+  registerChart('gacha_pulls', pullInst);
+
+  // WC character donut
+  destroyChart('gacha_wc');
+  const wcInst = new Chart(document.getElementById('gacha_wc'), {
+    type: 'bar',
+    data: {
+      labels: ['gacha=0 (n=64)', 'gacha=1 (n=159)'],
+      datasets: [
+        { label: 'Got WC character',     data: [8, 38],        backgroundColor: 'rgba(30,122,110,0.85)',  borderRadius: 4, borderWidth: 0 },
+        { label: 'Did not get WC char',  data: [64-8, 159-38], backgroundColor: 'rgba(180,180,170,0.5)', borderRadius: 4, borderWidth: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const total = c.datasetIndex === 0 ? [64,159][c.dataIndex] : [64,159][c.dataIndex];
+              const n = [64,159][c.dataIndex];
+              return ` ${c.dataset.label}: ${c.parsed.y} (${Math.round(c.parsed.y/n*100)}%)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { stacked: true, ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+  registerChart('gacha_wc', wcInst);
 }
 </script>
 </body>
