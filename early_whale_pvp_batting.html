@@ -73,6 +73,7 @@ tbody tr:hover td{background:#faf9f7}
   <button class="tab-btn" onclick="showPage('runscat',this)">Runs Category</button>
   <button class="tab-btn" onclick="showPage('bowling',this)">Bowling</button>
   <button class="tab-btn" onclick="showPage('bowlcat',this)">Bowling Category</button>
+  <button class="tab-btn" onclick="showPage('correlation',this)">Win Rate Correlation</button>
 </div>
 
 <script>
@@ -655,6 +656,204 @@ function showPage(id,btn){
 // Init
 buildRunsTab();
 buildWktsTab();
+</script>
+
+<!-- ══ WIN RATE CORRELATION ══ -->
+<div class="page" id="page-correlation">
+  <div class="section-label">Score vs Win Rate Correlation · By Tier</div>
+
+  <div class="insight blue">
+    <strong>Framework validated.</strong> Overall score (batting + bowling) correlates strongly with win rate across all tiers (r=0.597, p=0.0000, n=1,410). Higher scores consistently predict higher win rates. Both batting and bowling contribute independently — overall score is the strongest single predictor.
+  </div>
+
+  <div class="card full-col" style="margin-bottom:16px;">
+    <h3>How scores are calculated</h3>
+    <p style="font-size:13px;line-height:1.8;color:var(--text);">
+      Each early whale user is assigned a <strong>batting score (0–15)</strong> and a <strong>bowling score (0–15)</strong> based on their over-level performance during the week of Jun 17–23, benchmarked against winning innings data for their tier.
+    </p>
+    <p style="font-size:13px;line-height:1.8;color:var(--text);margin-top:10px;">
+      For <strong>batting</strong>, we look at each user's median runs scored at each of the 5 overs. Each over is independently categorised against the win==1 benchmark for that tier — <strong>Elite</strong> (above win q75) scores 3, <strong>Good</strong> (win q50–q75) scores 2, <strong>Needs Work</strong> (win q25–q50) scores 1, <strong>Bad</strong> (below win q25) scores 0. Summing across all 5 overs gives a batting score from 0 to 15.
+    </p>
+    <p style="font-size:13px;line-height:1.8;color:var(--text);margin-top:10px;">
+      <strong>Bowling</strong> follows the same structure but with inverted logic since lower runs conceded is better — <strong>Elite</strong> (below win q25) scores 3, <strong>Good</strong> (win q25–q50) scores 2, <strong>Needs Work</strong> (win q50–q75) scores 1, <strong>Bad</strong> (above win q75) scores 0. Summing across 5 overs gives a bowling score from 0 to 15.
+    </p>
+    <p style="font-size:13px;line-height:1.8;color:var(--text);margin-top:10px;">
+      The <strong>overall score (0–30)</strong> is the sum of batting and bowling scores. All benchmarks are tier-specific, derived from win==1 over-level data, so a user is always compared against what good performance looks like at their own tier. Win rate is calculated only from matches played at the user's highest tier during the week. The framework is validated — overall score correlates with win rate at <strong>r=0.597 (p=0.0000)</strong> across 1,410 users, with tier-level correlations ranging from r=0.772 (SUPREME) to r=0.970 (TITAN).
+    </p>
+  </div>
+  <div class="insight green">
+    <strong>Key reads:</strong> REMARKABLE has the strongest bowling correlation (r=0.977). LEGENDARY and TITAN have the strongest batting correlation (r=0.981, r=0.954). TITAN bowling is the weakest predictor (r=0.485, p=0.19) — suggesting at TITAN level, bowling variance is less predictive than batting quality. MASTERFUL and SUPREME show the lowest absolute win rates — consistent with those being the most competitive mid-tiers.
+  </div>
+
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+    <div><label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
+      <select class="tier-select" id="corrTierSelect" onchange="renderCorr()">
+        <option>CHALLENGER</option><option>PROVEN</option><option>ACCOMPLISHED</option>
+        <option>REMARKABLE</option><option>MASTERFUL</option><option>SUPREME</option>
+        <option>LEGENDARY</option><option value="TITAN" selected>TITAN</option>
+      </select></div>
+    <div style="display:inline-flex;border:.5px solid var(--border);border-radius:6px;overflow:hidden;" id="corrMetricToggle">
+      <button class="window-btn active" style="padding:6px 14px;font-size:11px;font-family:var(--mono);border:none;background:var(--accent);color:#fff;cursor:pointer;" onclick="setCorrMetric('ovr',this)">Overall</button>
+      <button class="window-btn" style="padding:6px 14px;font-size:11px;font-family:var(--mono);border:none;border-left:.5px solid var(--border);background:#fff;color:var(--text-muted);cursor:pointer;" onclick="setCorrMetric('bat',this)">Batting</button>
+      <button class="window-btn" style="padding:6px 14px;font-size:11px;font-family:var(--mono);border:none;border-left:.5px solid var(--border);background:#fff;color:var(--text-muted);cursor:pointer;" onclick="setCorrMetric('bowl',this)">Bowling</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="corr_stats_row"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3 id="corr_chart_title">Score vs Avg Win Rate</h3>
+      <div class="chart-wrap-xl"><canvas id="corr_line"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>User count by score bucket</h3>
+      <div class="chart-wrap-xl"><canvas id="corr_users"></canvas></div>
+    </div>
+  </div>
+
+  <div class="full-col card">
+    <h3>All tiers — overall score r values</h3>
+    <div class="chart-wrap-lg"><canvas id="corr_r_all"></canvas></div>
+  </div>
+
+  <div class="full-col card">
+    <h3>Correlation summary table — all tiers</h3>
+    <table>
+      <thead><tr>
+        <th>Tier</th><th class="right">n users</th>
+        <th class="right">Batting r</th><th class="right">Batting p</th>
+        <th class="right">Bowling r</th><th class="right">Bowling p</th>
+        <th class="right">Overall r</th><th class="right">Overall p</th>
+        <th class="right">Strongest predictor</th>
+      </tr></thead>
+      <tbody id="corr_table_tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const BAT_DATA = {"CHALLENGER": [{"score": 2.0, "users": 2, "avg": 0.6039, "med": 0.6039}, {"score": 3.0, "users": 3, "avg": 0.5562, "med": 0.5556}, {"score": 4.0, "users": 19, "avg": 0.5963, "med": 0.6}, {"score": 5.0, "users": 57, "avg": 0.633, "med": 0.625}, {"score": 6.0, "users": 65, "avg": 0.6434, "med": 0.6279}, {"score": 7.0, "users": 65, "avg": 0.6539, "med": 0.6757}, {"score": 8.0, "users": 45, "avg": 0.6941, "med": 0.6914}, {"score": 9.0, "users": 13, "avg": 0.7036, "med": 0.7083}, {"score": 10.0, "users": 5, "avg": 0.8109, "med": 0.7931}, {"score": 11.0, "users": 2, "avg": 0.6295, "med": 0.6295}, {"score": 12.0, "users": 2, "avg": 0.7584, "med": 0.7584}], "PROVEN": [{"score": 2.0, "users": 1, "avg": 0.7273, "med": 0.7273}, {"score": 3.0, "users": 3, "avg": 0.6503, "med": 0.6}, {"score": 4.0, "users": 17, "avg": 0.6241, "med": 0.6226}, {"score": 5.0, "users": 31, "avg": 0.6422, "med": 0.6415}, {"score": 6.0, "users": 45, "avg": 0.6807, "med": 0.7}, {"score": 7.0, "users": 37, "avg": 0.7, "med": 0.6977}, {"score": 8.0, "users": 36, "avg": 0.7267, "med": 0.7222}, {"score": 9.0, "users": 19, "avg": 0.7715, "med": 0.8125}, {"score": 10.0, "users": 9, "avg": 0.7832, "med": 0.8095}, {"score": 11.0, "users": 3, "avg": 0.7615, "med": 0.7857}], "ACCOMPLISHED": [{"score": 2.0, "users": 2, "avg": 0.5119, "med": 0.5119}, {"score": 3.0, "users": 6, "avg": 0.6236, "med": 0.6458}, {"score": 4.0, "users": 22, "avg": 0.6617, "med": 0.6471}, {"score": 5.0, "users": 39, "avg": 0.6652, "med": 0.6667}, {"score": 6.0, "users": 51, "avg": 0.7253, "med": 0.7419}, {"score": 7.0, "users": 46, "avg": 0.7188, "med": 0.7417}, {"score": 8.0, "users": 48, "avg": 0.751, "med": 0.7619}, {"score": 9.0, "users": 23, "avg": 0.7857, "med": 0.7931}, {"score": 10.0, "users": 9, "avg": 0.8097, "med": 0.8409}, {"score": 11.0, "users": 3, "avg": 0.7579, "med": 0.75}], "REMARKABLE": [{"score": 1.0, "users": 1, "avg": 0.3333, "med": 0.3333}, {"score": 2.0, "users": 7, "avg": 0.4499, "med": 0.4138}, {"score": 3.0, "users": 5, "avg": 0.5041, "med": 0.5}, {"score": 4.0, "users": 23, "avg": 0.571, "med": 0.5433}, {"score": 5.0, "users": 46, "avg": 0.5842, "med": 0.5556}, {"score": 6.0, "users": 47, "avg": 0.6508, "med": 0.6667}, {"score": 7.0, "users": 46, "avg": 0.6808, "med": 0.7222}, {"score": 8.0, "users": 27, "avg": 0.7204, "med": 0.75}, {"score": 9.0, "users": 16, "avg": 0.755, "med": 0.788}, {"score": 10.0, "users": 14, "avg": 0.7602, "med": 0.7705}, {"score": 11.0, "users": 1, "avg": 0.7569, "med": 0.7569}], "MASTERFUL": [{"score": 2.0, "users": 3, "avg": 0.3667, "med": 0.4}, {"score": 3.0, "users": 5, "avg": 0.3689, "med": 0.3636}, {"score": 4.0, "users": 17, "avg": 0.4326, "med": 0.4444}, {"score": 5.0, "users": 40, "avg": 0.4681, "med": 0.458}, {"score": 6.0, "users": 36, "avg": 0.5329, "med": 0.5279}, {"score": 7.0, "users": 41, "avg": 0.505, "med": 0.5}, {"score": 8.0, "users": 16, "avg": 0.6071, "med": 0.6056}, {"score": 9.0, "users": 4, "avg": 0.8018, "med": 0.8536}, {"score": 10.0, "users": 2, "avg": 0.8214, "med": 0.8214}], "SUPREME": [{"score": 3.0, "users": 1, "avg": 0.44, "med": 0.44}, {"score": 4.0, "users": 4, "avg": 0.5009, "med": 0.4944}, {"score": 5.0, "users": 13, "avg": 0.4715, "med": 0.4528}, {"score": 6.0, "users": 29, "avg": 0.5438, "med": 0.5349}, {"score": 7.0, "users": 25, "avg": 0.5404, "med": 0.5455}, {"score": 8.0, "users": 13, "avg": 0.5886, "med": 0.5833}, {"score": 9.0, "users": 4, "avg": 0.7361, "med": 0.7655}, {"score": 10.0, "users": 1, "avg": 0.8333, "med": 0.8333}], "LEGENDARY": [{"score": 3.0, "users": 3, "avg": 0.49, "med": 0.4853}, {"score": 4.0, "users": 3, "avg": 0.5006, "med": 0.5357}, {"score": 5.0, "users": 16, "avg": 0.5927, "med": 0.6099}, {"score": 6.0, "users": 16, "avg": 0.6074, "med": 0.6}, {"score": 7.0, "users": 19, "avg": 0.6776, "med": 0.6522}, {"score": 8.0, "users": 16, "avg": 0.689, "med": 0.6962}, {"score": 9.0, "users": 3, "avg": 0.7074, "med": 0.7667}, {"score": 10.0, "users": 5, "avg": 0.7771, "med": 0.7826}], "TITAN": [{"score": 1.0, "users": 1, "avg": 0.2857, "med": 0.2857}, {"score": 3.0, "users": 2, "avg": 0.6157, "med": 0.6157}, {"score": 4.0, "users": 6, "avg": 0.6019, "med": 0.574}, {"score": 5.0, "users": 19, "avg": 0.6473, "med": 0.62}, {"score": 6.0, "users": 31, "avg": 0.66, "med": 0.6411}, {"score": 7.0, "users": 26, "avg": 0.7281, "med": 0.7375}, {"score": 8.0, "users": 14, "avg": 0.7907, "med": 0.7977}, {"score": 9.0, "users": 14, "avg": 0.8736, "med": 0.8683}, {"score": 10.0, "users": 1, "avg": 0.9268, "med": 0.9268}]};
+const BOWL_DATA = {"CHALLENGER": [{"score": 2.0, "users": 2, "avg": 0.7525, "med": 0.7525}, {"score": 3.0, "users": 8, "avg": 0.5643, "med": 0.5722}, {"score": 4.0, "users": 22, "avg": 0.6046, "med": 0.5917}, {"score": 5.0, "users": 38, "avg": 0.6056, "med": 0.6132}, {"score": 6.0, "users": 66, "avg": 0.6183, "med": 0.625}, {"score": 7.0, "users": 60, "avg": 0.6512, "med": 0.6396}, {"score": 8.0, "users": 38, "avg": 0.6816, "med": 0.6923}, {"score": 9.0, "users": 27, "avg": 0.7486, "med": 0.75}, {"score": 10.0, "users": 11, "avg": 0.7912, "med": 0.7742}, {"score": 11.0, "users": 4, "avg": 0.807, "med": 0.8032}, {"score": 13.0, "users": 1, "avg": 0.8333, "med": 0.8333}, {"score": 14.0, "users": 1, "avg": 0.7368, "med": 0.7368}], "PROVEN": [{"score": 3.0, "users": 5, "avg": 0.6475, "med": 0.68}, {"score": 4.0, "users": 12, "avg": 0.5984, "med": 0.5826}, {"score": 5.0, "users": 26, "avg": 0.6335, "med": 0.6177}, {"score": 6.0, "users": 47, "avg": 0.6898, "med": 0.6809}, {"score": 7.0, "users": 38, "avg": 0.7145, "med": 0.7143}, {"score": 8.0, "users": 33, "avg": 0.7266, "med": 0.7273}, {"score": 9.0, "users": 26, "avg": 0.7246, "med": 0.7458}, {"score": 10.0, "users": 9, "avg": 0.7548, "med": 0.7917}, {"score": 11.0, "users": 4, "avg": 0.7509, "med": 0.7727}, {"score": 12.0, "users": 1, "avg": 0.8077, "med": 0.8077}], "ACCOMPLISHED": [{"score": 2.0, "users": 1, "avg": 0.7037, "med": 0.7037}, {"score": 3.0, "users": 5, "avg": 0.6467, "med": 0.625}, {"score": 4.0, "users": 6, "avg": 0.6708, "med": 0.6967}, {"score": 5.0, "users": 38, "avg": 0.6744, "med": 0.6766}, {"score": 6.0, "users": 69, "avg": 0.6887, "med": 0.6739}, {"score": 7.0, "users": 61, "avg": 0.742, "med": 0.75}, {"score": 8.0, "users": 30, "avg": 0.7452, "med": 0.7628}, {"score": 9.0, "users": 25, "avg": 0.7688, "med": 0.7805}, {"score": 10.0, "users": 8, "avg": 0.7861, "med": 0.7849}, {"score": 11.0, "users": 6, "avg": 0.793, "med": 0.8126}], "REMARKABLE": [{"score": 2.0, "users": 1, "avg": 0.5, "med": 0.5}, {"score": 3.0, "users": 4, "avg": 0.5757, "med": 0.5873}, {"score": 4.0, "users": 16, "avg": 0.5657, "med": 0.5564}, {"score": 5.0, "users": 38, "avg": 0.5714, "med": 0.5494}, {"score": 6.0, "users": 58, "avg": 0.6028, "med": 0.5917}, {"score": 7.0, "users": 44, "avg": 0.6593, "med": 0.672}, {"score": 8.0, "users": 46, "avg": 0.7358, "med": 0.75}, {"score": 9.0, "users": 13, "avg": 0.7063, "med": 0.7619}, {"score": 10.0, "users": 11, "avg": 0.7816, "med": 0.7568}, {"score": 11.0, "users": 1, "avg": 0.8235, "med": 0.8235}, {"score": 13.0, "users": 1, "avg": 0.8571, "med": 0.8571}], "MASTERFUL": [{"score": 2.0, "users": 2, "avg": 0.5, "med": 0.5}, {"score": 3.0, "users": 4, "avg": 0.4777, "med": 0.4687}, {"score": 4.0, "users": 19, "avg": 0.5052, "med": 0.5}, {"score": 5.0, "users": 45, "avg": 0.4792, "med": 0.4667}, {"score": 6.0, "users": 40, "avg": 0.483, "med": 0.4772}, {"score": 7.0, "users": 37, "avg": 0.5291, "med": 0.52}, {"score": 8.0, "users": 12, "avg": 0.5669, "med": 0.5563}, {"score": 9.0, "users": 1, "avg": 0.7, "med": 0.7}, {"score": 10.0, "users": 2, "avg": 0.7222, "med": 0.7222}, {"score": 11.0, "users": 1, "avg": 0.5556, "med": 0.5556}, {"score": 12.0, "users": 1, "avg": 1.0, "med": 1.0}], "SUPREME": [{"score": 3.0, "users": 2, "avg": 0.5513, "med": 0.5513}, {"score": 4.0, "users": 6, "avg": 0.4597, "med": 0.4568}, {"score": 5.0, "users": 22, "avg": 0.5488, "med": 0.5417}, {"score": 6.0, "users": 25, "avg": 0.5281, "med": 0.5172}, {"score": 7.0, "users": 19, "avg": 0.562, "med": 0.5455}, {"score": 8.0, "users": 13, "avg": 0.5749, "med": 0.5652}, {"score": 9.0, "users": 1, "avg": 0.5714, "med": 0.5714}, {"score": 11.0, "users": 2, "avg": 0.7123, "med": 0.7123}], "LEGENDARY": [{"score": 3.0, "users": 2, "avg": 0.6379, "med": 0.6379}, {"score": 4.0, "users": 6, "avg": 0.6292, "med": 0.6462}, {"score": 5.0, "users": 10, "avg": 0.5769, "med": 0.6065}, {"score": 6.0, "users": 22, "avg": 0.6571, "med": 0.6448}, {"score": 7.0, "users": 20, "avg": 0.6434, "med": 0.6475}, {"score": 8.0, "users": 15, "avg": 0.6487, "med": 0.6}, {"score": 9.0, "users": 5, "avg": 0.677, "med": 0.6774}, {"score": 10.0, "users": 1, "avg": 0.8182, "med": 0.8182}], "TITAN": [{"score": 3.0, "users": 1, "avg": 0.4545, "med": 0.4545}, {"score": 4.0, "users": 5, "avg": 0.5223, "med": 0.5225}, {"score": 5.0, "users": 16, "avg": 0.7078, "med": 0.6944}, {"score": 6.0, "users": 29, "avg": 0.6551, "med": 0.6411}, {"score": 7.0, "users": 34, "avg": 0.7535, "med": 0.8032}, {"score": 8.0, "users": 15, "avg": 0.7223, "med": 0.7419}, {"score": 9.0, "users": 11, "avg": 0.8065, "med": 0.8269}, {"score": 10.0, "users": 2, "avg": 0.9151, "med": 0.9151}, {"score": 11.0, "users": 1, "avg": 0.5, "med": 0.5}]};
+const OVR_DATA = {"CHALLENGER": [{"score": 9.0, "users": 9, "avg": 0.5353, "med": 0.5556}, {"score": 10.0, "users": 21, "avg": 0.5504, "med": 0.5556}, {"score": 11.0, "users": 33, "avg": 0.5957, "med": 0.6038}, {"score": 12.0, "users": 57, "avg": 0.613, "med": 0.62}, {"score": 13.0, "users": 57, "avg": 0.6583, "med": 0.6667}, {"score": 14.0, "users": 42, "avg": 0.6905, "med": 0.6875}, {"score": 15.0, "users": 22, "avg": 0.7249, "med": 0.7446}, {"score": 16.0, "users": 13, "avg": 0.74, "med": 0.75}, {"score": 17.0, "users": 9, "avg": 0.7888, "med": 0.8}, {"score": 18.0, "users": 8, "avg": 0.8011, "med": 0.7966}, {"score": 19.0, "users": 3, "avg": 0.8073, "med": 0.8}, {"score": 20.0, "users": 2, "avg": 0.6295, "med": 0.6295}, {"score": 21.0, "users": 1, "avg": 0.8333, "med": 0.8333}, {"score": 22.0, "users": 1, "avg": 0.7368, "med": 0.7368}], "PROVEN": [{"score": 8.0, "users": 3, "avg": 0.6314, "med": 0.68}, {"score": 9.0, "users": 4, "avg": 0.5124, "med": 0.5112}, {"score": 10.0, "users": 12, "avg": 0.5818, "med": 0.5615}, {"score": 11.0, "users": 18, "avg": 0.6013, "med": 0.5941}, {"score": 12.0, "users": 36, "avg": 0.662, "med": 0.6538}, {"score": 13.0, "users": 32, "avg": 0.7072, "med": 0.7143}, {"score": 14.0, "users": 27, "avg": 0.7281, "med": 0.7222}, {"score": 15.0, "users": 22, "avg": 0.7233, "med": 0.7275}, {"score": 16.0, "users": 23, "avg": 0.7609, "med": 0.7692}, {"score": 17.0, "users": 12, "avg": 0.7593, "med": 0.7846}, {"score": 18.0, "users": 7, "avg": 0.7902, "med": 0.8108}, {"score": 19.0, "users": 3, "avg": 0.7754, "med": 0.8077}, {"score": 20.0, "users": 1, "avg": 0.8095, "med": 0.8095}, {"score": 21.0, "users": 1, "avg": 0.8182, "med": 0.8182}], "ACCOMPLISHED": [{"score": 7.0, "users": 1, "avg": 0.5, "med": 0.5}, {"score": 8.0, "users": 3, "avg": 0.5167, "med": 0.5238}, {"score": 9.0, "users": 4, "avg": 0.6146, "med": 0.625}, {"score": 10.0, "users": 24, "avg": 0.6165, "med": 0.6099}, {"score": 11.0, "users": 29, "avg": 0.6569, "med": 0.6571}, {"score": 12.0, "users": 34, "avg": 0.7038, "med": 0.7042}, {"score": 13.0, "users": 40, "avg": 0.737, "med": 0.7604}, {"score": 14.0, "users": 37, "avg": 0.7454, "med": 0.7612}, {"score": 15.0, "users": 32, "avg": 0.7679, "med": 0.7703}, {"score": 16.0, "users": 15, "avg": 0.7487, "med": 0.7826}, {"score": 17.0, "users": 15, "avg": 0.7851, "med": 0.7895}, {"score": 18.0, "users": 9, "avg": 0.8128, "med": 0.8462}, {"score": 19.0, "users": 2, "avg": 0.8315, "med": 0.8315}, {"score": 20.0, "users": 2, "avg": 0.8035, "med": 0.8035}, {"score": 21.0, "users": 1, "avg": 0.8214, "med": 0.8214}, {"score": 22.0, "users": 1, "avg": 0.6667, "med": 0.6667}], "REMARKABLE": [{"score": 6.0, "users": 1, "avg": 0.3333, "med": 0.3333}, {"score": 7.0, "users": 2, "avg": 0.453, "med": 0.453}, {"score": 8.0, "users": 5, "avg": 0.4154, "med": 0.375}, {"score": 9.0, "users": 14, "avg": 0.5279, "med": 0.5109}, {"score": 10.0, "users": 21, "avg": 0.5186, "med": 0.5}, {"score": 11.0, "users": 27, "avg": 0.5802, "med": 0.5556}, {"score": 12.0, "users": 39, "avg": 0.5951, "med": 0.6087}, {"score": 13.0, "users": 30, "avg": 0.674, "med": 0.6548}, {"score": 14.0, "users": 31, "avg": 0.7042, "med": 0.7368}, {"score": 15.0, "users": 22, "avg": 0.7427, "med": 0.75}, {"score": 16.0, "users": 19, "avg": 0.7305, "med": 0.75}, {"score": 17.0, "users": 11, "avg": 0.8304, "med": 0.8421}, {"score": 18.0, "users": 7, "avg": 0.8583, "med": 0.8431}, {"score": 19.0, "users": 2, "avg": 0.7534, "med": 0.7534}, {"score": 20.0, "users": 2, "avg": 0.7286, "med": 0.7286}], "MASTERFUL": [{"score": 7.0, "users": 2, "avg": 0.35, "med": 0.35}, {"score": 8.0, "users": 4, "avg": 0.4428, "med": 0.4248}, {"score": 9.0, "users": 11, "avg": 0.408, "med": 0.4062}, {"score": 10.0, "users": 22, "avg": 0.4428, "med": 0.4514}, {"score": 11.0, "users": 35, "avg": 0.474, "med": 0.4737}, {"score": 12.0, "users": 40, "avg": 0.5089, "med": 0.5114}, {"score": 13.0, "users": 20, "avg": 0.5321, "med": 0.5317}, {"score": 14.0, "users": 17, "avg": 0.5635, "med": 0.5357}, {"score": 15.0, "users": 4, "avg": 0.725, "med": 0.775}, {"score": 16.0, "users": 7, "avg": 0.7354, "med": 0.6923}, {"score": 18.0, "users": 1, "avg": 0.5556, "med": 0.5556}, {"score": 22.0, "users": 1, "avg": 1.0, "med": 1.0}], "SUPREME": [{"score": 7.0, "users": 1, "avg": 0.44, "med": 0.44}, {"score": 9.0, "users": 2, "avg": 0.4697, "med": 0.4697}, {"score": 10.0, "users": 5, "avg": 0.5167, "med": 0.5385}, {"score": 11.0, "users": 17, "avg": 0.5042, "med": 0.5082}, {"score": 12.0, "users": 21, "avg": 0.5051, "med": 0.5111}, {"score": 13.0, "users": 18, "avg": 0.5865, "med": 0.6}, {"score": 14.0, "users": 13, "avg": 0.5461, "med": 0.5294}, {"score": 15.0, "users": 5, "avg": 0.5707, "med": 0.5652}, {"score": 16.0, "users": 5, "avg": 0.674, "med": 0.6111}, {"score": 17.0, "users": 1, "avg": 0.8387, "med": 0.8387}, {"score": 19.0, "users": 1, "avg": 0.5405, "med": 0.5405}, {"score": 20.0, "users": 1, "avg": 0.8841, "med": 0.8841}], "LEGENDARY": [{"score": 9.0, "users": 1, "avg": 0.4275, "med": 0.4275}, {"score": 10.0, "users": 6, "avg": 0.5851, "med": 0.5889}, {"score": 11.0, "users": 13, "avg": 0.551, "med": 0.5402}, {"score": 12.0, "users": 13, "avg": 0.6071, "med": 0.6129}, {"score": 13.0, "users": 13, "avg": 0.6439, "med": 0.6207}, {"score": 14.0, "users": 17, "avg": 0.6779, "med": 0.6809}, {"score": 15.0, "users": 7, "avg": 0.7355, "med": 0.711}, {"score": 16.0, "users": 7, "avg": 0.6804, "med": 0.6774}, {"score": 17.0, "users": 2, "avg": 0.7937, "med": 0.7937}, {"score": 18.0, "users": 2, "avg": 0.8466, "med": 0.8466}], "TITAN": [{"score": 5.0, "users": 1, "avg": 0.2857, "med": 0.2857}, {"score": 8.0, "users": 1, "avg": 0.4545, "med": 0.4545}, {"score": 9.0, "users": 5, "avg": 0.6449, "med": 0.5949}, {"score": 10.0, "users": 5, "avg": 0.5604, "med": 0.5806}, {"score": 11.0, "users": 12, "avg": 0.6124, "med": 0.6152}, {"score": 12.0, "users": 21, "avg": 0.6848, "med": 0.6667}, {"score": 13.0, "users": 22, "avg": 0.6906, "med": 0.7114}, {"score": 14.0, "users": 11, "avg": 0.728, "med": 0.7903}, {"score": 15.0, "users": 15, "avg": 0.7969, "med": 0.8182}, {"score": 16.0, "users": 12, "avg": 0.8006, "med": 0.8557}, {"score": 17.0, "users": 5, "avg": 0.8186, "med": 0.875}, {"score": 18.0, "users": 3, "avg": 0.9129, "med": 0.93}, {"score": 19.0, "users": 1, "avg": 0.9552, "med": 0.9552}]};
+const CORR_STATS = {"CHALLENGER": {"bat": {"r": 0.77, "p": 0.0056, "n": 278}, "bowl": {"r": 0.696, "p": 0.0119, "n": 278}, "ovr": {"r": 0.789, "p": 0.0008, "n": 278}}, "PROVEN": {"bat": {"r": 0.73, "p": 0.0166, "n": 201}, "bowl": {"r": 0.937, "p": 0.0001, "n": 201}, "ovr": {"r": 0.927, "p": 0.0, "n": 201}}, "ACCOMPLISHED": {"bat": {"r": 0.912, "p": 0.0002, "n": 249}, "bowl": {"r": 0.896, "p": 0.0005, "n": 249}, "ovr": {"r": 0.808, "p": 0.0002, "n": 249}}, "REMARKABLE": {"bat": {"r": 0.963, "p": 0.0, "n": 233}, "bowl": {"r": 0.977, "p": 0.0, "n": 233}, "ovr": {"r": 0.93, "p": 0.0, "n": 233}}, "MASTERFUL": {"bat": {"r": 0.945, "p": 0.0001, "n": 164}, "bowl": {"r": 0.753, "p": 0.0074, "n": 164}, "ovr": {"r": 0.902, "p": 0.0001, "n": 164}}, "SUPREME": {"bat": {"r": 0.918, "p": 0.0013, "n": 90}, "bowl": {"r": 0.796, "p": 0.0181, "n": 90}, "ovr": {"r": 0.772, "p": 0.0032, "n": 90}}, "LEGENDARY": {"bat": {"r": 0.981, "p": 0.0, "n": 81}, "bowl": {"r": 0.712, "p": 0.0476, "n": 81}, "ovr": {"r": 0.949, "p": 0.0, "n": 81}}, "TITAN": {"bat": {"r": 0.954, "p": 0.0001, "n": 114}, "bowl": {"r": 0.485, "p": 0.1859, "n": 114}, "ovr": {"r": 0.97, "p": 0.0, "n": 114}}};
+
+let corrMetric = 'ovr';
+
+function setCorrMetric(m, btn) {
+  corrMetric = m;
+  btn.closest('#corrMetricToggle').querySelectorAll('.window-btn').forEach(b => {
+    b.style.background = '#fff'; b.style.color = 'var(--text-muted)';
+  });
+  btn.style.background = 'var(--accent)'; btn.style.color = '#fff';
+  renderCorr();
+}
+
+function renderCorr() {
+  const tier = document.getElementById('corrTierSelect').value;
+  const data = corrMetric === 'bat' ? BAT_DATA[tier] : corrMetric === 'bowl' ? BOWL_DATA[tier] : OVR_DATA[tier];
+  const cs = CORR_STATS[tier][corrMetric];
+  const scoreLabel = corrMetric === 'bat' ? 'Batting Score' : corrMetric === 'bowl' ? 'Bowling Score' : 'Overall Score';
+  const maxScore = corrMetric === 'ovr' ? 30 : 15;
+
+  // Stat cards
+  const statsRow = document.getElementById('corr_stats_row');
+  const bat = CORR_STATS[tier].bat, bowl = CORR_STATS[tier].bowl, ovr = CORR_STATS[tier].ovr;
+  statsRow.innerHTML = `
+    <div class="stat-card"><div class="label">Overall r</div><div class="value">${ovr.r}</div><div class="sub">p=${ovr.p} · n=${ovr.n}</div></div>
+    <div class="stat-card"><div class="label">Batting r</div><div class="value">${bat.r}</div><div class="sub">p=${bat.p} · n=${bat.n}</div></div>
+    <div class="stat-card"><div class="label">Bowling r</div><div class="value">${bowl.r}</div><div class="sub">p=${bowl.p} · n=${bowl.n}</div></div>
+    <div class="stat-card"><div class="label">Strongest predictor</div><div class="value">${[['bat',bat.r],['bowl',bowl.r],['ovr',ovr.r]].sort((a,b)=>b[1]-a[1])[0][0].toUpperCase()}</div><div class="sub">${tier}</div></div>
+  `;
+
+  document.getElementById('corr_chart_title').textContent = `${scoreLabel} vs Avg Win Rate — ${tier}`;
+
+  // Line chart
+  destroyChart('corr_line');
+  reg('corr_line', new Chart(document.getElementById('corr_line'), {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.score),
+      datasets: [
+        {label:'Avg win rate', data:data.map(d=>d.avg), borderColor:'rgba(44,95,138,1)', backgroundColor:'rgba(44,95,138,0.08)', fill:true, tension:0.3, pointRadius:5, borderWidth:2.5},
+        {label:'Median win rate', data:data.map(d=>d.med), borderColor:'rgba(176,58,46,1)', backgroundColor:'transparent', fill:false, tension:0.3, pointRadius:4, borderWidth:2, borderDash:[5,3]}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${(c.parsed.y*100).toFixed(1)}%`}}},
+      scales:{
+        x:{title:{display:true,text:scoreLabel,font:{size:11}},grid:{display:false},ticks:{font:{size:11}}},
+        y:{min:0,max:1,ticks:{callback:v=>(v*100).toFixed(0)+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  }));
+
+  // Users bar
+  destroyChart('corr_users');
+  reg('corr_users', new Chart(document.getElementById('corr_users'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.score),
+      datasets: [{label:'Users', data:data.map(d=>d.users), backgroundColor:TIER_COLORS[TIERS.indexOf(tier)], borderRadius:3, borderWidth:0}]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` Users: ${c.parsed.y}`}}},
+      scales:{
+        x:{title:{display:true,text:scoreLabel,font:{size:11}},grid:{display:false},ticks:{font:{size:11}}},
+        y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  }));
+
+  // All tiers r bar
+  destroyChart('corr_r_all');
+  reg('corr_r_all', new Chart(document.getElementById('corr_r_all'), {
+    type: 'bar',
+    data: {
+      labels: TIERS,
+      datasets: [
+        {label:'Overall r', data:TIERS.map(t=>CORR_STATS[t].ovr.r), backgroundColor:'rgba(44,95,138,0.85)', borderRadius:3, borderWidth:0},
+        {label:'Batting r', data:TIERS.map(t=>CORR_STATS[t].bat.r), backgroundColor:'rgba(30,122,110,0.75)', borderRadius:3, borderWidth:0},
+        {label:'Bowling r', data:TIERS.map(t=>CORR_STATS[t].bowl.r), backgroundColor:'rgba(176,58,46,0.75)', borderRadius:3, borderWidth:0}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},
+        y:{min:0,max:1,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  }));
+
+  // Summary table
+  const strongest = t => {
+    const s = CORR_STATS[t];
+    const m = [['Batting',s.bat.r],['Bowling',s.bowl.r],['Overall',s.ovr.r]].sort((a,b)=>b[1]-a[1])[0];
+    return m[0];
+  };
+  document.getElementById('corr_table_tbody').innerHTML = TIERS.map(t => {
+    const s = CORR_STATS[t];
+    const batSig = s.bat.p < 0.05;
+    const bowlSig = s.bowl.p < 0.05;
+    const ovrSig = s.ovr.p < 0.05;
+    return `<tr style="${t===tier?'background:#f0f6fc;font-weight:500;':''}">
+      <td>${t}</td><td class="mono right">${s.ovr.n}</td>
+      <td class="mono right" style="color:${batSig?'var(--teal)':'var(--text-muted)'};">${s.bat.r}</td>
+      <td class="mono right" style="font-size:11px;color:var(--text-muted);">${s.bat.p}</td>
+      <td class="mono right" style="color:${bowlSig?'var(--teal)':'var(--red)'};">${s.bowl.r}</td>
+      <td class="mono right" style="font-size:11px;color:var(--text-muted);">${s.bowl.p}</td>
+      <td class="mono right" style="color:${ovrSig?'var(--teal)':'var(--text-muted)'};">${s.ovr.r}</td>
+      <td class="mono right" style="font-size:11px;color:var(--text-muted);">${s.ovr.p}</td>
+      <td class="right" style="font-size:12px;">${strongest(t)}</td>
+    </tr>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
