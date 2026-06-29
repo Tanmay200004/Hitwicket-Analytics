@@ -7,300 +7,290 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #f7f6f3; --card: #ffffff; --border: rgba(0,0,0,0.08);
-    --text: #1a1a1a; --text-muted: #6b6b6b;
-    --accent: #2c5f8a; --accent-light: #e8f0f8;
-    --teal: #1e7a6e; --teal-light: #e3f3f1;
-    --amber: #a05c0a; --amber-light: #fdf0e0;
-    --red: #b03a2e; --red-light: #fdecea;
-    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); font-family: var(--sans); color: var(--text); font-size: 14px; }
-
-  .header { background: var(--accent); color: #fff; padding: 20px 32px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-  .header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; flex: 1; }
-  .header .sub { font-size: 12px; opacity: 0.75; font-family: var(--mono); }
-
-  .tab-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; position: sticky; top: 57px; z-index: 90; overflow-x: auto; }
-  .tab-btn { padding: 12px 20px; font-family: var(--mono); font-size: 12px; border: none; background: none; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
-  .tab-btn:hover { color: var(--accent); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
-
-  .page { display: none; padding: 28px 32px; max-width: 1300px; }
-  .page.active { display: block; }
-
-  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 16px; margin-top: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-  .stat-card { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-  .stat-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
-  .stat-card .value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--accent); }
-  .stat-card .sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .full-col { margin-bottom: 16px; }
-
-  .card { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 20px; }
-  .card h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 16px; }
-
-  .chart-wrap { position: relative; height: 240px; }
-  .chart-wrap-lg { position: relative; height: 300px; }
-  .chart-wrap-xl { position: relative; height: 360px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  thead th.right { text-align: right; }
-  tbody td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: #faf9f7; }
-  .mono { font-family: var(--mono); font-size: 12px; }
-  .right { text-align: right; }
-
-  .insight { border-radius: 0 6px 6px 0; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 16px; border-left: 3px solid; }
-  .insight.blue  { background: var(--accent-light); border-color: var(--accent); color: #1a3a5c; }
-  .insight.green { background: var(--teal-light);   border-color: var(--teal);   color: #0f3d36; }
-  .insight.amber { background: var(--amber-light);  border-color: var(--amber);  color: #4a2a04; }
-  .insight.red   { background: var(--red-light);    border-color: var(--red);    color: #5a1a14; }
-  .insight strong { font-weight: 600; }
-
-  .heatmap-wrap { overflow-x: auto; }
-  .heatmap-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .heatmap-table th { padding: 8px 12px; text-align: right; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  .heatmap-table th.left { text-align: left; }
-  .heatmap-table td { padding: 7px 12px; border-bottom: 0.5px solid var(--border); }
-
-  .tier-badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
-
-  .window-toggle { display: inline-flex; border: 0.5px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 20px; }
-  .window-btn { padding: 7px 18px; font-size: 12px; font-family: var(--mono); border: none; background: #fff; cursor: pointer; color: var(--text-muted); transition: background 0.15s, color 0.15s; }
-  .window-btn.active { background: var(--accent); color: #fff; }
-  .window-btn:not(:last-child) { border-right: 0.5px solid var(--border); }
-
-  /* Over chart selector */
-  .tier-select { padding: 7px 12px; font-family: var(--mono); font-size: 12px; border: 0.5px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); cursor: pointer; margin-bottom: 20px; }
-
-  @media (max-width: 900px) {
-    .stats-row { grid-template-columns: repeat(2,1fr); }
-    .two-col { grid-template-columns: 1fr; }
-    .page { padding: 16px; }
-  }
+:root{--bg:#f7f6f3;--card:#fff;--border:rgba(0,0,0,0.08);--text:#1a1a1a;--text-muted:#6b6b6b;--accent:#2c5f8a;--accent-light:#e8f0f8;--teal:#1e7a6e;--teal-light:#e3f3f1;--amber:#a05c0a;--amber-light:#fdf0e0;--red:#b03a2e;--red-light:#fdecea;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--sans);color:var(--text);font-size:14px}
+.header{background:var(--accent);color:#fff;padding:20px 32px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.header h1{font-size:16px;font-weight:600;letter-spacing:.02em;flex:1}
+.header .sub{font-size:12px;opacity:.75;font-family:var(--mono)}
+.tab-bar{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;display:flex;position:sticky;top:57px;z-index:90;overflow-x:auto}
+.tab-btn{padding:12px 20px;font-family:var(--mono);font-size:12px;border:none;background:none;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab-btn:hover{color:var(--accent)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.page{display:none;padding:28px 32px;max-width:1300px}
+.page.active{display:block}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:16px;margin-top:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:.5px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-card .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.stat-card .value{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent)}
+.stat-card .sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.full-col{margin-bottom:16px}
+.card{background:var(--card);border:.5px solid var(--border);border-radius:8px;padding:20px}
+.card h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:16px}
+.chart-wrap{position:relative;height:240px}
+.chart-wrap-lg{position:relative;height:300px}
+.chart-wrap-xl{position:relative;height:360px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--border)}
+thead th.right{text-align:right}
+tbody td{padding:7px 10px;border-bottom:.5px solid var(--border)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#faf9f7}
+.mono{font-family:var(--mono);font-size:12px}
+.right{text-align:right}
+.insight{border-radius:0 6px 6px 0;padding:12px 16px;font-size:13px;line-height:1.6;margin-bottom:16px;border-left:3px solid}
+.insight.blue{background:var(--accent-light);border-color:var(--accent);color:#1a3a5c}
+.insight.green{background:var(--teal-light);border-color:var(--teal);color:#0f3d36}
+.insight.amber{background:var(--amber-light);border-color:var(--amber);color:#4a2a04}
+.insight.red{background:var(--red-light);border-color:var(--red);color:#5a1a14}
+.insight strong{font-weight:600}
+.heatmap-wrap{overflow-x:auto}
+.heatmap-table{width:100%;border-collapse:collapse;font-size:12px}
+.heatmap-table th{padding:8px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+.heatmap-table th.left{text-align:left}
+.heatmap-table td{padding:7px 12px;border-bottom:.5px solid var(--border)}
+.tier-badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.window-toggle{display:inline-flex;border:.5px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:20px}
+.window-btn{padding:7px 18px;font-size:12px;font-family:var(--mono);border:none;background:#fff;cursor:pointer;color:var(--text-muted);transition:background .15s,color .15s}
+.window-btn.active{background:var(--accent);color:#fff}
+.window-btn:not(:last-child){border-right:.5px solid var(--border)}
+.tier-select{padding:7px 12px;font-family:var(--mono);font-size:12px;border:.5px solid var(--border);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;margin-bottom:20px}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.page{padding:16px}}
 </style>
 </head>
 <body>
-
 <div class="header">
-  <h1>Early Whales — PvP Batting Analysis</h1>
-  <span class="sub">Week: Jun 17–23 · All early whale installs since inception · 5-over batting · Over-level granularity</span>
+  <h1>Early Whales — PvP Batting & Bowling Analysis</h1>
+  <span class="sub">Week: Jun 17–23 · All early whale installs · 5-over matches · 1,716 unique teams</span>
 </div>
-
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showPage('runs',this)">Runs by Tier</button>
   <button class="tab-btn" onclick="showPage('wickets',this)">Wickets by Tier</button>
   <button class="tab-btn" onclick="showPage('winloss',this)">Win vs Loss</button>
   <button class="tab-btn" onclick="showPage('overlevel',this)">Over-Level Benchmark</button>
   <button class="tab-btn" onclick="showPage('runscat',this)">Runs Category</button>
+  <button class="tab-btn" onclick="showPage('bowling',this)">Bowling</button>
+  <button class="tab-btn" onclick="showPage('bowlcat',this)">Bowling Category</button>
 </div>
 
 <script>
-// ── Tier order (ROOKIE dropped) ──
-const TIERS = ['CHALLENGER','PROVEN','ACCOMPLISHED','REMARKABLE','MASTERFUL','SUPREME','LEGENDARY','TITAN'];
-const TIER_COLORS = ['#4a7ab5','#3a8a5f','#2c5f8a','#6b6b6b','#a05c0a','#7b3f9e','#1e7a6e','#c49a1a'];
+const TIERS=['CHALLENGER','PROVEN','ACCOMPLISHED','REMARKABLE','MASTERFUL','SUPREME','LEGENDARY','TITAN'];
+const TIER_COLORS=['#4a7ab5','#3a8a5f','#2c5f8a','#6b6b6b','#a05c0a','#7b3f9e','#1e7a6e','#c49a1a'];
+const chartReg={};
+function destroyChart(id){if(chartReg[id]){chartReg[id].destroy();delete chartReg[id]}}
+function reg(id,inst){chartReg[id]=inst;return inst}
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.plugins.legend.display=false;
 
-const chartReg = {};
-function destroyChart(id) { if (chartReg[id]) { chartReg[id].destroy(); delete chartReg[id]; } }
-function reg(id, inst) { chartReg[id] = inst; return inst; }
-
-// ── All-match runs ──
-const RUNS = {
-  CHALLENGER:   {teams:283,  matches:18352, unique:4357,  q25:40, q50:49, q70:61, q90:74},
-  PROVEN:       {teams:272,  matches:25207, unique:6079,  q25:39, q50:48, q70:60, q90:74},
-  ACCOMPLISHED: {teams:303,  matches:38561, unique:9272,  q25:40, q50:49, q70:63, q90:76},
-  REMARKABLE:   {teams:277,  matches:42371, unique:9734,  q25:41, q50:52, q70:65, q90:77},
-  MASTERFUL:    {teams:256,  matches:19275, unique:4391,  q25:40, q50:50, q70:61, q90:71},
-  SUPREME:      {teams:153,  matches:19185, unique:4393,  q25:41, q50:51, q70:63, q90:73},
-  LEGENDARY:    {teams:127,  matches:20242, unique:4634,  q25:43, q50:53, q70:65, q90:76},
-  TITAN:        {teams:120,  matches:25543, unique:5975,  q25:45, q50:58, q70:72, q90:84}
+// ── DATA ──
+const RUNS={
+  CHALLENGER:  {teams:408,matches:36030,unique:8455,q25:40,q50:48,q75:59,q90:71},
+  PROVEN:      {teams:296,matches:29254,unique:7022,q25:39,q50:48,q75:60,q90:73},
+  ACCOMPLISHED:{teams:307,matches:40090,unique:9625,q25:40,q50:49,q75:63,q90:76},
+  REMARKABLE:  {teams:277,matches:42371,unique:9734,q25:41,q50:52,q75:65,q90:77},
+  MASTERFUL:   {teams:256,matches:19275,unique:4391,q25:40,q50:50,q75:61,q90:71},
+  SUPREME:     {teams:153,matches:19185,unique:4393,q25:41,q50:51,q75:63,q90:73},
+  LEGENDARY:   {teams:127,matches:20242,unique:4634,q25:43,q50:53,q75:65,q90:76},
+  TITAN:       {teams:120,matches:25543,unique:5975,q25:45,q50:58,q75:72,q90:84}
 };
-
-// ── All-match wickets ──
-const WKTS = {
-  CHALLENGER:   {teams:283,  matches:18352, unique:4357,  q25:1, q50:2, q70:3, q90:4},
-  PROVEN:       {teams:272,  matches:25207, unique:6079,  q25:0, q50:1, q70:3, q90:4},
-  ACCOMPLISHED: {teams:303,  matches:38561, unique:9272,  q25:1, q50:2, q70:3, q90:4},
-  REMARKABLE:   {teams:277,  matches:42371, unique:9734,  q25:1, q50:2, q70:3, q90:4},
-  MASTERFUL:    {teams:256,  matches:19275, unique:4391,  q25:1, q50:2, q70:3, q90:4},
-  SUPREME:      {teams:153,  matches:19185, unique:4393,  q25:1, q50:2, q70:3, q90:4},
-  LEGENDARY:    {teams:127,  matches:20242, unique:4634,  q25:1, q50:2, q70:3, q90:4},
-  TITAN:        {teams:120,  matches:25543, unique:5975,  q25:1, q50:2, q70:3, q90:4}
+const WKTS={
+  CHALLENGER:  {teams:408,matches:36030,unique:8455,q25:1,q50:2,q75:3,q90:4},
+  PROVEN:      {teams:296,matches:29254,unique:7022,q25:1,q50:2,q75:3,q90:4},
+  ACCOMPLISHED:{teams:307,matches:40090,unique:9625,q25:1,q50:2,q75:3,q90:4},
+  REMARKABLE:  {teams:277,matches:42371,unique:9734,q25:1,q50:2,q75:3,q90:4},
+  MASTERFUL:   {teams:256,matches:19275,unique:4391,q25:1,q50:2,q75:3,q90:4},
+  SUPREME:     {teams:153,matches:19185,unique:4393,q25:1,q50:2,q75:3,q90:4},
+  LEGENDARY:   {teams:127,matches:20242,unique:4634,q25:1,q50:2,q75:3,q90:4},
+  TITAN:       {teams:120,matches:25543,unique:5975,q25:1,q50:2,q75:3,q90:4}
 };
-
-// ── Win==1 runs ──
-const RUNS_WIN = {
-  CHALLENGER:   {q25:42, q50:50, q70:66, q90:78},
-  PROVEN:       {q25:41, q50:50, q70:65, q90:79},
-  ACCOMPLISHED: {q25:42, q50:52, q70:67, q90:81},
-  REMARKABLE:   {q25:46, q50:57, q70:70, q90:81},
-  MASTERFUL:    {q25:45, q50:54, q70:66, q90:77},
-  SUPREME:      {q25:45, q50:56, q70:68, q90:78},
-  LEGENDARY:    {q25:47, q50:59, q70:70, q90:81},
-  TITAN:        {q25:50, q50:64, q70:77, q90:89}
+const RUNS_WIN={
+  CHALLENGER:  {teams:400,unique:5659,q25:43,q50:50,q75:62,q90:74},
+  PROVEN:      {teams:291,unique:4853,q25:41,q50:50,q75:64,q90:78},
+  ACCOMPLISHED:{teams:304,unique:6932,q25:42,q50:52,q75:67,q90:81},
+  REMARKABLE:  {teams:271,unique:6133,q25:46,q50:57,q75:70,q90:81},
+  MASTERFUL:   {teams:244,unique:2249,q25:45,q50:54,q75:66,q90:77},
+  SUPREME:     {teams:149,unique:2370,q25:45,q50:56,q75:68,q90:78},
+  LEGENDARY:   {teams:126,unique:2831,q25:47,q50:59,q75:70,q90:81},
+  TITAN:       {teams:118,unique:4412,q25:50,q50:64,q75:77,q90:89}
 };
-
-// ── Win==0 runs ──
-const RUNS_LOSS = {
-  CHALLENGER:   {q25:33, q50:45, q70:55, q90:63},
-  PROVEN:       {q25:33, q50:44, q70:53, q90:61},
-  ACCOMPLISHED: {q25:34, q50:44, q70:54, q90:63},
-  REMARKABLE:   {q25:34, q50:46, q70:55, q90:63},
-  MASTERFUL:    {q25:35, q50:46, q70:56, q90:64},
-  SUPREME:      {q25:34, q50:47, q70:56, q90:64},
-  LEGENDARY:    {q25:36, q50:47, q70:57, q90:65},
-  TITAN:        {q25:38, q50:49, q70:59, q90:68}
+const RUNS_LOSS={
+  CHALLENGER:  {teams:375,unique:2812,q25:34,q50:46,q75:55,q90:63},
+  PROVEN:      {teams:278,unique:2180,q25:34,q50:44,q75:53,q90:61},
+  ACCOMPLISHED:{teams:293,unique:2721,q25:34,q50:44,q75:54,q90:63},
+  REMARKABLE:  {teams:263,unique:3657,q25:34,q50:46,q75:55,q90:63},
+  MASTERFUL:   {teams:235,unique:2159,q25:35,q50:46,q75:56,q90:64},
+  SUPREME:     {teams:146,unique:2046,q25:34,q50:47,q75:56,q90:64},
+  LEGENDARY:   {teams:123,unique:1837,q25:36,q50:47,q75:57,q90:65},
+  TITAN:       {teams:120,unique:1683,q25:38,q50:49,q75:59,q90:68}
 };
-
-// ── Win==1 wickets ──
-const WKTS_WIN = {
-  CHALLENGER:   {q25:0, q50:1, q70:2, q90:3},
-  PROVEN:       {q25:0, q50:1, q70:2, q90:3},
-  ACCOMPLISHED: {q25:0, q50:1, q70:2, q90:3},
-  REMARKABLE:   {q25:0, q50:1, q70:2, q90:3},
-  MASTERFUL:    {q25:0, q50:1, q70:2, q90:3},
-  SUPREME:      {q25:0, q50:1, q70:2, q90:3},
-  LEGENDARY:    {q25:1, q50:2, q70:3, q90:3},
-  TITAN:        {q25:1, q50:2, q70:3, q90:4}
+const WKTS_WIN={
+  CHALLENGER:  {q25:0,q50:1,q75:2,q90:3},
+  PROVEN:      {q25:0,q50:1,q75:2,q90:3},
+  ACCOMPLISHED:{q25:0,q50:1,q75:2,q90:3},
+  REMARKABLE:  {q25:0,q50:1,q75:2,q90:3},
+  MASTERFUL:   {q25:0,q50:1,q75:2,q90:3},
+  SUPREME:     {q25:0,q50:1,q75:2,q90:3},
+  LEGENDARY:   {q25:1,q50:2,q75:3,q90:3},
+  TITAN:       {q25:1,q50:2,q75:3,q90:4}
 };
-
-// ── Win==0 wickets ──
-const WKTS_LOSS = {
-  CHALLENGER:   {q25:2, q50:3, q70:4, q90:5},
-  PROVEN:       {q25:2, q50:2, q70:4, q90:5},
-  ACCOMPLISHED: {q25:2, q50:2, q70:3, q90:4},
-  REMARKABLE:   {q25:2, q50:2, q70:3, q90:4},
-  MASTERFUL:    {q25:2, q50:3, q70:4, q90:5},
-  SUPREME:      {q25:2, q50:2, q70:3, q90:4},
-  LEGENDARY:    {q25:2, q50:3, q70:4, q90:5},
-  TITAN:        {q25:2, q50:3, q70:4, q90:5}
+const WKTS_LOSS={
+  CHALLENGER:  {q25:2,q50:3,q75:4,q90:5},
+  PROVEN:      {q25:2,q50:2,q75:4,q90:4},
+  ACCOMPLISHED:{q25:2,q50:2,q75:3,q90:4},
+  REMARKABLE:  {q25:2,q50:2,q75:3,q90:4},
+  MASTERFUL:   {q25:2,q50:3,q75:4,q90:5},
+  SUPREME:     {q25:2,q50:2,q75:3,q90:4},
+  LEGENDARY:   {q25:2,q50:3,q75:4,q90:5},
+  TITAN:       {q25:2,q50:3,q75:4,q90:5}
 };
-
-// ── Over-level data: win==1 benchmark ──
-const OVER_WIN = {
-  CHALLENGER:   [{q25:8,q50:12,q70:16,q90:20},{q25:9,q50:14,q70:19,q90:22},{q25:7,q50:12,q70:16,q90:20},{q25:7,q50:12,q70:17,q90:21},{q25:6,q50:12,q70:18,q90:22}],
-  PROVEN:       [{q25:8,q50:12,q70:16,q90:20},{q25:9,q50:14,q70:19,q90:23},{q25:7,q50:12,q70:16,q90:20},{q25:6,q50:11,q70:16,q90:21},{q25:6,q50:12,q70:18,q90:23}],
-  ACCOMPLISHED: [{q25:8,q50:12,q70:16,q90:20},{q25:9,q50:14,q70:19,q90:23},{q25:6,q50:12,q70:16,q90:20},{q25:7,q50:12,q70:17,q90:21},{q25:7,q50:12,q70:19,q90:24}],
-  REMARKABLE:   [{q25:7,q50:12,q70:16,q90:20},{q25:10,q50:15,q70:19,q90:24},{q25:7,q50:12,q70:17,q90:20},{q25:7,q50:12,q70:18,q90:21},{q25:7,q50:13,q70:19,q90:24}],
-  MASTERFUL:    [{q25:7,q50:12,q70:16,q90:20},{q25:9,q50:14,q70:19,q90:23},{q25:6,q50:12,q70:16,q90:20},{q25:8,q50:12,q70:18,q90:22},{q25:7,q50:12,q70:19,q90:24}],
-  SUPREME:      [{q25:7,q50:12,q70:16,q90:20},{q25:9,q50:14,q70:19,q90:24},{q25:7,q50:12,q70:17,q90:20},{q25:7,q50:12,q70:18,q90:22},{q25:7,q50:12,q70:19,q90:25}],
-  LEGENDARY:    [{q25:7,q50:12,q70:16,q90:20},{q25:10,q50:14,q70:19,q90:23},{q25:7,q50:12,q70:17,q90:21},{q25:8,q50:13,q70:18,q90:24},{q25:8,q50:14,q70:20,q90:26}],
-  TITAN:        [{q25:8,q50:13,q70:18,q90:21},{q25:10,q50:16,q70:20,q90:25},{q25:7,q50:12,q70:18,q90:22},{q25:8,q50:14,q70:20,q90:25},{q25:9,q50:16,q70:24,q90:30}]
+const OVER_WIN={
+  CHALLENGER:  [{q25:8,q50:12,q75:16,q90:19},{q25:9,q50:14,q75:18,q90:22},{q25:7,q50:12,q75:16,q90:20},{q25:7,q50:12,q75:16,q90:20},{q25:6,q50:12,q75:17,q90:22}],
+  PROVEN:      [{q25:8,q50:12,q75:16,q90:20},{q25:9,q50:14,q75:18,q90:22},{q25:7,q50:12,q75:16,q90:20},{q25:6,q50:11,q75:16,q90:20},{q25:6,q50:12,q75:18,q90:23}],
+  ACCOMPLISHED:[{q25:8,q50:12,q75:16,q90:20},{q25:9,q50:14,q75:19,q90:23},{q25:6,q50:12,q75:16,q90:20},{q25:7,q50:12,q75:17,q90:21},{q25:7,q50:12,q75:19,q90:24}],
+  REMARKABLE:  [{q25:7,q50:12,q75:16,q90:20},{q25:10,q50:15,q75:19,q90:24},{q25:7,q50:12,q75:17,q90:20},{q25:7,q50:12,q75:18,q90:21},{q25:7,q50:13,q75:19,q90:24}],
+  MASTERFUL:   [{q25:7,q50:12,q75:16,q90:20},{q25:9,q50:14,q75:19,q90:23},{q25:6,q50:12,q75:16,q90:20},{q25:8,q50:12,q75:18,q90:22},{q25:7,q50:12,q75:19,q90:24}],
+  SUPREME:     [{q25:7,q50:12,q75:16,q90:20},{q25:9,q50:14,q75:19,q90:24},{q25:7,q50:12,q75:17,q90:20},{q25:7,q50:12,q75:18,q90:22},{q25:7,q50:12,q75:19,q90:25}],
+  LEGENDARY:   [{q25:7,q50:12,q75:16,q90:20},{q25:10,q50:14,q75:19,q90:23},{q25:7,q50:12,q75:17,q90:21},{q25:8,q50:13,q75:18,q90:24},{q25:8,q50:14,q75:20,q90:26}],
+  TITAN:       [{q25:8,q50:13,q75:18,q90:21},{q25:10,q50:16,q75:20,q90:25},{q25:7,q50:12,q75:18,q90:22},{q25:8,q50:14,q75:20,q90:25},{q25:9,q50:16,q75:24,q90:30}]
 };
-
-// ── Over-level data: win==0 ──
-const OVER_LOSS = {
-  CHALLENGER:   [{q25:4,q50:8,q70:12,q90:16},{q25:5,q50:9,q70:14,q90:20},{q25:3,q50:8,q70:14,q90:18},{q25:4,q50:9,q70:14,q90:18},{q25:1,q50:7,q70:13,q90:18}],
-  PROVEN:       [{q25:3,q50:7,q70:12,q90:16},{q25:5,q50:10,q70:15,q90:19},{q25:3,q50:8,q70:13,q90:18},{q25:4,q50:9,q70:14,q90:18},{q25:1,q50:7,q70:13,q90:18}],
-  ACCOMPLISHED: [{q25:4,q50:7,q70:12,q90:16},{q25:5,q50:10,q70:16,q90:20},{q25:3,q50:8,q70:13,q90:18},{q25:4,q50:9,q70:14,q90:18},{q25:2,q50:7,q70:13,q90:18}],
-  REMARKABLE:   [{q25:3,q50:7,q70:12,q90:16},{q25:5,q50:10,q70:16,q90:20},{q25:3,q50:8,q70:13,q90:18},{q25:4,q50:9,q70:14,q90:19},{q25:2,q50:7,q70:13,q90:19}],
-  MASTERFUL:    [{q25:3,q50:7,q70:11,q90:16},{q25:6,q50:11,q70:16,q90:20},{q25:4,q50:7,q70:13,q90:18},{q25:5,q50:10,q70:15,q90:19},{q25:3,q50:8,q70:14,q90:20}],
-  SUPREME:      [{q25:3,q50:7,q70:12,q90:16},{q25:5,q50:11,q70:16,q90:20},{q25:3,q50:8,q70:13,q90:18},{q25:5,q50:10,q70:15,q90:20},{q25:2,q50:8,q70:15,q90:20}],
-  LEGENDARY:    [{q25:4,q50:8,q70:12,q90:16},{q25:6,q50:11,q70:15,q90:20},{q25:4,q50:8,q70:13,q90:18},{q25:6,q50:11,q70:16,q90:20},{q25:3,q50:9,q70:15,q90:21}],
-  TITAN:        [{q25:4,q50:8,q70:12,q90:17},{q25:7,q50:11,q70:16,q90:20},{q25:4,q50:8,q70:13,q90:18},{q25:6,q50:12,q70:17,q90:21},{q25:5,q50:12,q70:18,q90:24}]
+const OVER_LOSS={
+  CHALLENGER:  [{q25:4,q50:8,q75:12,q90:16},{q25:5,q50:10,q75:15,q90:19},{q25:4,q50:8,q75:14,q90:18},{q25:5,q50:10,q75:14,q90:19},{q25:2,q50:7,q75:13,q90:18}],
+  PROVEN:      [{q25:3,q50:7,q75:12,q90:16},{q25:5,q50:10,q75:15,q90:19},{q25:3,q50:8,q75:13,q90:18},{q25:4,q50:9,q75:14,q90:18},{q25:2,q50:7,q75:13,q90:18}],
+  ACCOMPLISHED:[{q25:4,q50:8,q75:12,q90:16},{q25:5,q50:10,q75:16,q90:20},{q25:3,q50:8,q75:13,q90:18},{q25:4,q50:9,q75:14,q90:18},{q25:2,q50:7,q75:13,q90:18}],
+  REMARKABLE:  [{q25:3,q50:7,q75:12,q90:16},{q25:5,q50:10,q75:16,q90:20},{q25:3,q50:8,q75:13,q90:18},{q25:4,q50:9,q75:14,q90:19},{q25:2,q50:7,q75:13,q90:19}],
+  MASTERFUL:   [{q25:3,q50:7,q75:11,q90:16},{q25:6,q50:11,q75:16,q90:20},{q25:4,q50:7,q75:13,q90:18},{q25:5,q50:10,q75:15,q90:19},{q25:3,q50:8,q75:14,q90:20}],
+  SUPREME:     [{q25:3,q50:7,q75:12,q90:16},{q25:5,q50:11,q75:16,q90:20},{q25:3,q50:8,q75:13,q90:18},{q25:5,q50:10,q75:15,q90:20},{q25:2,q50:8,q75:15,q90:20}],
+  LEGENDARY:   [{q25:4,q50:8,q75:12,q90:16},{q25:6,q50:11,q75:15,q90:20},{q25:4,q50:8,q75:13,q90:18},{q25:6,q50:11,q75:16,q90:20},{q25:3,q50:9,q75:15,q90:21}],
+  TITAN:       [{q25:4,q50:8,q75:12,q90:17},{q25:7,q50:11,q75:16,q90:20},{q25:4,q50:8,q75:13,q90:18},{q25:6,q50:12,q75:17,q90:21},{q25:5,q50:12,q75:18,q90:24}]
 };
-
-const OVERS = [1,2,3,4,5];
+const CAT_DATA={
+  CHALLENGER:{1:{Elite:2,Good:85,NeedsWork:167,Bad:28},2:{Elite:8,Good:92,NeedsWork:167,Bad:15},3:{Elite:3,Good:101,NeedsWork:166,Bad:12},4:{Elite:8,Good:100,NeedsWork:156,Bad:17},5:{Elite:8,Good:71,NeedsWork:171,Bad:31}},
+  PROVEN:{1:{Elite:6,Good:67,NeedsWork:112,Bad:17},2:{Elite:6,Good:57,NeedsWork:128,Bad:11},3:{Elite:4,Good:64,NeedsWork:124,Bad:10},4:{Elite:6,Good:105,NeedsWork:85,Bad:6},5:{Elite:10,Good:59,NeedsWork:108,Bad:25}},
+  ACCOMPLISHED:{1:{Elite:6,Good:105,NeedsWork:119,Bad:20},2:{Elite:6,Good:82,NeedsWork:152,Bad:10},3:{Elite:5,Good:73,NeedsWork:162,Bad:10},4:{Elite:3,Good:100,NeedsWork:134,Bad:13},5:{Elite:1,Good:89,NeedsWork:127,Bad:33}},
+  REMARKABLE:{1:{Elite:5,Good:67,NeedsWork:145,Bad:21},2:{Elite:1,Good:77,NeedsWork:141,Bad:19},3:{Elite:4,Good:72,NeedsWork:137,Bad:25},4:{Elite:2,Good:106,NeedsWork:121,Bad:9},5:{Elite:7,Good:58,NeedsWork:134,Bad:39}},
+  MASTERFUL:{1:{Elite:3,Good:28,NeedsWork:105,Bad:31},2:{Elite:2,Good:51,NeedsWork:99,Bad:15},3:{Elite:2,Good:30,NeedsWork:123,Bad:12},4:{Elite:1,Good:80,NeedsWork:69,Bad:17},5:{Elite:3,Good:53,NeedsWork:83,Bad:28}},
+  SUPREME:{1:{Elite:1,Good:17,NeedsWork:66,Bad:8},2:{Elite:0,Good:27,NeedsWork:60,Bad:5},3:{Elite:0,Good:33,NeedsWork:55,Bad:4},4:{Elite:1,Good:43,NeedsWork:45,Bad:3},5:{Elite:4,Good:45,NeedsWork:27,Bad:16}},
+  LEGENDARY:{1:{Elite:1,Good:34,NeedsWork:39,Bad:7},2:{Elite:0,Good:30,NeedsWork:47,Bad:4},3:{Elite:1,Good:29,NeedsWork:47,Bad:4},4:{Elite:1,Good:29,NeedsWork:51,Bad:0},5:{Elite:1,Good:23,NeedsWork:49,Bad:8}},
+  TITAN:{1:{Elite:0,Good:39,NeedsWork:65,Bad:10},2:{Elite:0,Good:32,NeedsWork:76,Bad:6},3:{Elite:1,Good:45,NeedsWork:64,Bad:4},4:{Elite:2,Good:43,NeedsWork:66,Bad:3},5:{Elite:0,Good:41,NeedsWork:62,Bad:11}}
+};
+const BOWL_ALL={
+  CHALLENGER:  {teams:405,unique:8583,q25:37,q50:45,q75:55,q90:67},
+  PROVEN:      {teams:299,unique:7270,q25:32,q50:42,q75:53,q90:65},
+  ACCOMPLISHED:{teams:307,unique:9980,q25:32,q50:42,q75:53,q90:65},
+  REMARKABLE:  {teams:277,unique:9986,q25:35,q50:46,q75:58,q90:68},
+  MASTERFUL:   {teams:257,unique:4364,q25:40,q50:49,q75:63,q90:74},
+  SUPREME:     {teams:154,unique:4380,q25:39,q50:50,q75:62,q90:72},
+  LEGENDARY:   {teams:127,unique:4655,q25:38,q50:49,q75:60,q90:71},
+  TITAN:       {teams:121,unique:6266,q25:34,q50:46,q75:59,q90:70}
+};
+const BOWL_WIN={
+  CHALLENGER:  {teams:399,unique:5890,q25:34,q50:42,q75:48,q90:56},
+  PROVEN:      {teams:294,unique:5214,q25:29,q50:39,q75:46,q90:54},
+  ACCOMPLISHED:{teams:303,unique:7411,q25:29,q50:39,q75:46,q90:55},
+  REMARKABLE:  {teams:272,unique:6772,q25:30,q50:41,q75:50,q90:59},
+  MASTERFUL:   {teams:244,unique:2421,q25:36,q50:43,q75:52,q90:61},
+  SUPREME:     {teams:150,unique:2610,q25:35,q50:43,q75:53,q90:62},
+  LEGENDARY:   {teams:126,unique:3106,q25:34,q50:43,q75:52,q90:61},
+  TITAN:       {teams:119,unique:4862,q25:31,q50:42,q75:53,q90:62}
+};
+const BOWL_LOSS={
+  CHALLENGER:  {teams:374,unique:2709,q25:48,q50:58,q75:68,q90:76},
+  PROVEN:      {teams:278,unique:2067,q25:47,q50:56,q75:66,q90:77},
+  ACCOMPLISHED:{teams:292,unique:2597,q25:47,q50:57,q75:68,q90:77},
+  REMARKABLE:  {teams:260,unique:3270,q25:50,q50:58,q75:68,q90:77},
+  MASTERFUL:   {teams:234,unique:1960,q25:51,q50:62,q75:72,q90:83},
+  SUPREME:     {teams:148,unique:1793,q25:52,q50:61,q75:71,q90:80},
+  LEGENDARY:   {teams:123,unique:1583,q25:52,q50:62,q75:71,q90:78},
+  TITAN:       {teams:119,unique:1524,q25:53,q50:63,q75:72,q90:80}
+};
+const WKTS_ALL_BOWL={
+  CHALLENGER:  {teams:405,unique:8583,q25:1,q50:2,q75:3,q90:4},
+  PROVEN:      {teams:299,unique:7270,q25:1,q50:2,q75:3,q90:5},
+  ACCOMPLISHED:{teams:307,unique:9980,q25:1,q50:2,q75:3,q90:5},
+  REMARKABLE:  {teams:277,unique:9986,q25:1,q50:2,q75:3,q90:4},
+  MASTERFUL:   {teams:257,unique:4364,q25:1,q50:2,q75:3,q90:4},
+  SUPREME:     {teams:154,unique:4380,q25:1,q50:2,q75:3,q90:4},
+  LEGENDARY:   {teams:127,unique:4655,q25:1,q50:2,q75:3,q90:4},
+  TITAN:       {teams:121,unique:6266,q25:2,q50:3,q75:4,q90:5}
+};
+const WKTS_WIN_BOWL={
+  CHALLENGER:  {teams:399,unique:5890,q25:1,q50:2,q75:4,q90:5},
+  PROVEN:      {teams:294,unique:5214,q25:1,q50:3,q75:4,q90:5},
+  ACCOMPLISHED:{teams:303,unique:7411,q25:1,q50:3,q75:4,q90:5},
+  REMARKABLE:  {teams:272,unique:6772,q25:2,q50:3,q75:4,q90:5},
+  MASTERFUL:   {teams:244,unique:2421,q25:1,q50:2,q75:4,q90:5},
+  SUPREME:     {teams:150,unique:2610,q25:2,q50:2,q75:4,q90:5},
+  LEGENDARY:   {teams:126,unique:3106,q25:2,q50:3,q75:4,q90:5},
+  TITAN:       {teams:119,unique:4862,q25:2,q50:3,q75:4,q90:5}
+};
+const WKTS_LOSS_BOWL={
+  CHALLENGER:  {teams:374,unique:2709,q25:1,q50:2,q75:2,q90:3},
+  PROVEN:      {teams:278,unique:2067,q25:1,q50:1,q75:2,q90:3},
+  ACCOMPLISHED:{teams:292,unique:2597,q25:0,q50:1,q75:2,q90:3},
+  REMARKABLE:  {teams:260,unique:3270,q25:0,q50:1,q75:2,q90:3},
+  MASTERFUL:   {teams:234,unique:1960,q25:1,q50:2,q75:3,q90:4},
+  SUPREME:     {teams:148,unique:1793,q25:1,q50:2,q75:3,q90:4},
+  LEGENDARY:   {teams:123,unique:1583,q25:1,q50:2,q75:3,q90:4},
+  TITAN:       {teams:119,unique:1524,q25:1,q50:2,q75:3,q90:4}
+};
+const BOWL_CAT_DATA={
+  CHALLENGER:{1:{Elite:17,Good:135,NeedsWork:106,Bad:25},2:{Elite:16,Good:72,NeedsWork:155,Bad:40},3:{Elite:9,Good:91,NeedsWork:157,Bad:26},4:{Elite:12,Good:103,NeedsWork:147,Bad:21},5:{Elite:11,Good:94,NeedsWork:139,Bad:39}},
+  PROVEN:{1:{Elite:17,Good:78,NeedsWork:95,Bad:12},2:{Elite:7,Good:61,NeedsWork:107,Bad:27},3:{Elite:7,Good:61,NeedsWork:124,Bad:10},4:{Elite:4,Good:83,NeedsWork:96,Bad:19},5:{Elite:12,Good:89,NeedsWork:86,Bad:15}},
+  ACCOMPLISHED:{1:{Elite:15,Good:89,NeedsWork:140,Bad:7},2:{Elite:6,Good:86,NeedsWork:134,Bad:25},3:{Elite:7,Good:83,NeedsWork:148,Bad:13},4:{Elite:10,Good:84,NeedsWork:134,Bad:23},5:{Elite:9,Good:105,NeedsWork:112,Bad:25}},
+  REMARKABLE:{1:{Elite:15,Good:94,NeedsWork:104,Bad:24},2:{Elite:7,Good:78,NeedsWork:126,Bad:26},3:{Elite:2,Good:104,NeedsWork:122,Bad:9},4:{Elite:5,Good:89,NeedsWork:131,Bad:12},5:{Elite:2,Good:76,NeedsWork:120,Bad:39}},
+  MASTERFUL:{1:{Elite:8,Good:58,NeedsWork:72,Bad:29},2:{Elite:4,Good:41,NeedsWork:99,Bad:23},3:{Elite:9,Good:54,NeedsWork:83,Bad:21},4:{Elite:3,Good:45,NeedsWork:91,Bad:28},5:{Elite:2,Good:42,NeedsWork:89,Bad:34}},
+  SUPREME:{1:{Elite:4,Good:32,NeedsWork:36,Bad:19},2:{Elite:2,Good:25,NeedsWork:52,Bad:12},3:{Elite:1,Good:33,NeedsWork:41,Bad:16},4:{Elite:2,Good:35,NeedsWork:50,Bad:4},5:{Elite:1,Good:38,NeedsWork:33,Bad:19}},
+  LEGENDARY:{1:{Elite:2,Good:35,NeedsWork:38,Bad:8},2:{Elite:3,Good:36,NeedsWork:34,Bad:10},3:{Elite:2,Good:30,NeedsWork:39,Bad:12},4:{Elite:1,Good:24,NeedsWork:52,Bad:6},5:{Elite:2,Good:26,NeedsWork:46,Bad:9}},
+  TITAN:{1:{Elite:2,Good:56,NeedsWork:50,Bad:6},2:{Elite:1,Good:48,NeedsWork:57,Bad:8},3:{Elite:3,Good:52,NeedsWork:46,Bad:13},4:{Elite:1,Good:32,NeedsWork:75,Bad:6},5:{Elite:0,Good:34,NeedsWork:72,Bad:8}}
+};
 </script>
 
-<!-- ══════════════ RUNS BY TIER ══════════════ -->
+<!-- ══ RUNS BY TIER ══ -->
 <div class="page active" id="page-runs">
-  <div class="section-label">Runs Scored per Match · All Matches · Distribution by Tier</div>
-
-  <div class="insight blue">
-    <strong>TITAN and LEGENDARY separate at the top end.</strong> Median runs (q50) are similar across most tiers (48–53) but TITAN leads at 58 and LEGENDARY at 53. The real differentiation is at q90 — TITAN scores 84 runs/match at the 90th percentile vs 71 for MASTERFUL. Higher tiers don't score more consistently — they score more explosively at peak.
-  </div>
-
+  <div class="section-label">Runs Scored per Match · All Matches · By Tier</div>
+  <div class="insight blue"><strong>TITAN and LEGENDARY separate at the top end.</strong> Median runs are similar across most tiers (48–53) but TITAN leads at 58 and LEGENDARY at 53. The real differentiation is at q90 — TITAN scores 84 runs/match at the 90th percentile vs 71 for MASTERFUL and CHALLENGER.</div>
   <div class="stats-row">
-    <div class="stat-card"><div class="label">Total teams</div><div class="value">1,624</div><div class="sub">8 tiers · unique teams may span multiple tiers</div></div>
-    <div class="stat-card"><div class="label">Highest median tier</div><div class="value">TITAN</div><div class="sub">q50: 58 · q90: 84 runs/match</div></div>
+    <div class="stat-card"><div class="label">Total teams</div><div class="value">1,716</div><div class="sub">8 tiers (ROOKIE excluded)</div></div>
+    <div class="stat-card"><div class="label">Highest median tier</div><div class="value">TITAN</div><div class="sub">q50: 58 · q90: 84</div></div>
     <div class="stat-card"><div class="label">Most matched tier</div><div class="value">REMARKABLE</div><div class="sub">42,371 rows · 9,734 unique matches</div></div>
-    <div class="stat-card"><div class="label">q50 range across tiers</div><div class="value">48 – 58</div><div class="sub">PROVEN lowest · TITAN highest</div></div>
+    <div class="stat-card"><div class="label">q50 range</div><div class="value">48 – 58</div><div class="sub">CHALLENGER/PROVEN lowest · TITAN highest</div></div>
   </div>
-
   <div class="two-col">
-    <div class="card">
-      <h3>Median runs/match (q50) by tier</h3>
-      <div class="chart-wrap-lg"><canvas id="runs_median"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Runs distribution — q25 / q50 / q70 / q90</h3>
-      <div class="chart-wrap-lg"><canvas id="runs_dist"></canvas></div>
-    </div>
+    <div class="card"><h3>Median runs/match (q50) by tier</h3><div class="chart-wrap-lg"><canvas id="runs_median"></canvas></div></div>
+    <div class="card"><h3>Runs distribution — q25/q50/q75/q90</h3><div class="chart-wrap-lg"><canvas id="runs_dist"></canvas></div></div>
   </div>
-
   <div class="full-col card">
-    <h3>Runs heatmap — percentile × tier</h3>
+    <h3>Runs heatmap</h3>
     <div class="heatmap-wrap" id="runs_heatmap"></div>
   </div>
-
   <div class="full-col card">
     <h3>Full runs table</h3>
-    <table>
-      <thead><tr>
-        <th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th>
-        <th class="right">q25</th><th class="right">q50</th><th class="right">q70</th><th class="right">q90</th>
-      </tr></thead>
-      <tbody id="runs_tbody"></tbody>
-    </table>
+    <table><thead><tr><th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody id="runs_tbody"></tbody></table>
   </div>
 </div>
 
-<!-- ══════════════ WICKETS BY TIER ══════════════ -->
+<!-- ══ WICKETS BY TIER ══ -->
 <div class="page" id="page-wickets">
-  <div class="section-label">Wickets Lost per Match · All Matches · Distribution by Tier</div>
-
-  <div class="insight amber">
-    <strong>Wicket distributions are nearly identical across all tiers at the quartile level.</strong> q25=0–1, q50=1–2, q70=3, q90=4 across all tiers. This tells us wicket-loss rate per over is not a tier differentiator in this format. More useful cuts: wickets by over number, or wickets split by win vs loss where the gap is much clearer.
-  </div>
-
+  <div class="section-label">Wickets Lost per Match · All Matches · By Tier</div>
+  <div class="insight amber"><strong>Wicket distributions are nearly identical across all tiers.</strong> q25=1, q50=2, q75=3, q90=4 for almost every tier. Tier differences show up in runs scored, not wickets lost per match. More useful cuts: wickets by win vs loss where the gap is clearer.</div>
   <div class="two-col">
-    <div class="card">
-      <h3>Median wickets/match (q50) by tier</h3>
-      <div class="chart-wrap-lg"><canvas id="wkt_median"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Wickets distribution — q25 / q50 / q70 / q90</h3>
-      <div class="chart-wrap-lg"><canvas id="wkt_dist"></canvas></div>
-    </div>
+    <div class="card"><h3>Median wickets/match (q50) by tier</h3><div class="chart-wrap-lg"><canvas id="wkt_median"></canvas></div></div>
+    <div class="card"><h3>Wickets distribution — q25/q50/q75/q90</h3><div class="chart-wrap-lg"><canvas id="wkt_dist"></canvas></div></div>
   </div>
-
   <div class="full-col card">
     <h3>Full wickets table</h3>
-    <table>
-      <thead><tr>
-        <th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th>
-        <th class="right">q25</th><th class="right">q50</th><th class="right">q70</th><th class="right">q90</th>
-      </tr></thead>
-      <tbody id="wkt_tbody"></tbody>
-    </table>
+    <table><thead><tr><th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody id="wkt_tbody"></tbody></table>
   </div>
 </div>
 
-<!-- ══════════════ WIN VS LOSS ══════════════ -->
+<!-- ══ WIN VS LOSS ══ -->
 <div class="page" id="page-winloss">
-  <div class="section-label">Runs & Wickets Split by Match Outcome · All Tiers</div>
-
-  <div class="insight blue">
-    <strong>Runs gap between wins and losses is large and consistent across all tiers.</strong> Winners score 6–15 more runs per over at median vs losers. The gap widens at q90 — winners score 77–89 at the top decile vs 61–68 for losers. TITAN shows the largest absolute gap (q50: 64 win vs 49 loss = 15 runs).
-  </div>
-
-  <div class="insight red">
-    <strong>Wickets tell a sharper story in losses.</strong> In wins, q50 wickets = 1–2. In losses, q50 jumps to 2–3 and q90 reaches 4–5. Losing innings are characterised by both fewer runs AND more wickets — a double signal.
-  </div>
-
-  <div class="insight green">
-    <strong>Over-level pattern (see Over-Level Benchmark tab):</strong> Over 2 is universally the highest-scoring over across all tiers in winning innings. Over 3 is the universal weak point — every tier's q50 dips back to 12 at over 3 even in wins. TITAN and LEGENDARY accelerate in overs 4–5; most other tiers flatten. Losing innings show a sharper over 3 dip and fail to recover in overs 4–5.
-  </div>
-
+  <div class="section-label">Runs & Wickets Split by Match Outcome</div>
+  <div class="insight blue"><strong>Runs gap between wins and losses is large and consistent.</strong> Winners score 6–15 more runs at median vs losers. TITAN shows the largest gap (q50: 64 win vs 49 loss = 15 runs). Over-level pattern: Over 2 is universally the highest-scoring over in wins. Over 3 is the universal weak point — every tier dips back to q50=12 even in wins.</div>
+  <div class="insight red"><strong>Wickets tell a sharper story in losses.</strong> In wins, q50=1–2 wickets. In losses, q50 jumps to 2–3 and q90 reaches 4–5. Losing innings are characterised by both fewer runs AND more wickets.</div>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
     <span style="font-size:12px;color:var(--text-muted);">Metric:</span>
     <div class="window-toggle">
@@ -308,664 +298,363 @@ const OVERS = [1,2,3,4,5];
       <button class="window-btn" onclick="setWLMetric('wickets',this)">Wickets</button>
     </div>
   </div>
-
   <div id="wl-runs">
     <div class="two-col">
-      <div class="card">
-        <h3>Median runs/match — Win vs Loss</h3>
-        <div class="chart-wrap-lg"><canvas id="wl_runs_median"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Runs delta — Win q50 minus Loss q50</h3>
-        <div class="chart-wrap-lg"><canvas id="wl_runs_delta"></canvas></div>
-      </div>
+      <div class="card"><h3>Median runs/match — Win vs Loss</h3><div class="chart-wrap-lg"><canvas id="wl_runs_median"></canvas></div></div>
+      <div class="card"><h3>Runs delta — Win q50 minus Loss q50</h3><div class="chart-wrap-lg"><canvas id="wl_runs_delta"></canvas></div></div>
     </div>
     <div class="full-col card">
       <h3>Runs detail — Win vs Loss</h3>
-      <table>
-        <thead><tr>
-          <th>Tier</th>
-          <th class="right">Win q25</th><th class="right">Win q50</th><th class="right">Win q70</th><th class="right">Win q90</th>
-          <th class="right">Loss q25</th><th class="right">Loss q50</th><th class="right">Loss q70</th><th class="right">Loss q90</th>
-          <th class="right">Δ q50</th>
-        </tr></thead>
-        <tbody id="wl_runs_tbody"></tbody>
-      </table>
+      <table><thead><tr><th>Tier</th><th class="right">Win q25</th><th class="right">Win q50</th><th class="right">Win q75</th><th class="right">Win q90</th><th class="right">Loss q25</th><th class="right">Loss q50</th><th class="right">Loss q75</th><th class="right">Loss q90</th><th class="right">Δ q50</th></tr></thead><tbody id="wl_runs_tbody"></tbody></table>
     </div>
   </div>
-
   <div id="wl-wickets" style="display:none;">
     <div class="two-col">
-      <div class="card">
-        <h3>Median wickets/match — Win vs Loss</h3>
-        <div class="chart-wrap-lg"><canvas id="wl_wkt_median"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Wickets q90 — Win vs Loss</h3>
-        <div class="chart-wrap-lg"><canvas id="wl_wkt_q90"></canvas></div>
-      </div>
+      <div class="card"><h3>Median wickets/match — Win vs Loss</h3><div class="chart-wrap-lg"><canvas id="wl_wkt_median"></canvas></div></div>
+      <div class="card"><h3>Wickets q90 — Win vs Loss</h3><div class="chart-wrap-lg"><canvas id="wl_wkt_q90"></canvas></div></div>
     </div>
     <div class="full-col card">
       <h3>Wickets detail — Win vs Loss</h3>
-      <table>
-        <thead><tr>
-          <th>Tier</th>
-          <th class="right">Win q25</th><th class="right">Win q50</th><th class="right">Win q70</th><th class="right">Win q90</th>
-          <th class="right">Loss q25</th><th class="right">Loss q50</th><th class="right">Loss q70</th><th class="right">Loss q90</th>
-          <th class="right">Δ q50</th>
-        </tr></thead>
-        <tbody id="wl_wkt_tbody"></tbody>
-      </table>
+      <table><thead><tr><th>Tier</th><th class="right">Win q25</th><th class="right">Win q50</th><th class="right">Win q75</th><th class="right">Win q90</th><th class="right">Loss q25</th><th class="right">Loss q50</th><th class="right">Loss q75</th><th class="right">Loss q90</th><th class="right">Δ q50</th></tr></thead><tbody id="wl_wkt_tbody"></tbody></table>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ OVER-LEVEL BENCHMARK ══════════════ -->
+<!-- ══ OVER-LEVEL BENCHMARK ══ -->
 <div class="page" id="page-overlevel">
   <div class="section-label">Over-Level Runs Benchmark · Win==1 · Tier Selector</div>
-
+  <div class="insight green"><strong>Benchmark is based on win==1 data per tier.</strong> Over 2 is universally the highest-scoring over. Over 3 is the universal weak point — every tier dips to q50=12 at over 3. TITAN and LEGENDARY accelerate in overs 4–5; most other tiers flatten.</div>
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
-    <div>
-      <label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
+    <div><label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
       <select class="tier-select" id="overTierSelect" onchange="renderOverLevel()">
-        <option value="CHALLENGER">CHALLENGER</option>
-        <option value="PROVEN">PROVEN</option>
-        <option value="ACCOMPLISHED">ACCOMPLISHED</option>
-        <option value="REMARKABLE">REMARKABLE</option>
-        <option value="MASTERFUL">MASTERFUL</option>
-        <option value="SUPREME">SUPREME</option>
-        <option value="LEGENDARY">LEGENDARY</option>
-        <option value="TITAN" selected>TITAN</option>
-      </select>
-    </div>
-    <div>
-      <label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Percentile:</label>
+        <option>CHALLENGER</option><option>PROVEN</option><option>ACCOMPLISHED</option><option>REMARKABLE</option><option>MASTERFUL</option><option>SUPREME</option><option>LEGENDARY</option><option value="TITAN" selected>TITAN</option>
+      </select></div>
+    <div><label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Percentile:</label>
       <select class="tier-select" id="overPctSelect" onchange="renderOverLevel()">
-        <option value="q25">q25</option>
-        <option value="q50" selected>q50 (median)</option>
-        <option value="q70">q70</option>
-        <option value="q90">q90</option>
-      </select>
-    </div>
+        <option value="q25">q25</option><option value="q50" selected>q50 (median)</option><option value="q75">q75</option><option value="q90">q90</option>
+      </select></div>
   </div>
-
   <div class="two-col">
-    <div class="card">
-      <h3>Runs by over — Win benchmark vs Loss</h3>
-      <div class="chart-wrap-xl"><canvas id="over_line"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Win vs Loss gap by over</h3>
-      <div class="chart-wrap-xl"><canvas id="over_gap"></canvas></div>
-    </div>
+    <div class="card"><h3>Runs by over — Win benchmark vs Loss</h3><div class="chart-wrap-xl"><canvas id="over_line"></canvas></div></div>
+    <div class="card"><h3>Win vs Loss gap by over</h3><div class="chart-wrap-xl"><canvas id="over_gap"></canvas></div></div>
   </div>
-
+  <div class="full-col card"><h3>All tiers — q50 runs by over (Win benchmark)</h3><div class="chart-wrap-xl"><canvas id="over_all_tiers"></canvas></div></div>
   <div class="full-col card">
-    <h3>All tiers — q50 runs by over (Win benchmark)</h3>
-    <div class="chart-wrap-xl"><canvas id="over_all_tiers"></canvas></div>
-  </div>
-
-  <div class="full-col card">
-    <h3>Over-level benchmark table — Win==1 · q50 · All tiers</h3>
-    <table>
-      <thead><tr>
-        <th>Tier</th>
-        <th class="right">Over 1</th><th class="right">Over 2</th><th class="right">Over 3</th><th class="right">Over 4</th><th class="right">Over 5</th>
-        <th class="right">Best over</th><th class="right">Weakest over</th>
-      </tr></thead>
-      <tbody id="over_benchmark_tbody"></tbody>
-    </table>
+    <h3>Over-level benchmark table — Win==1 · q50</h3>
+    <table><thead><tr><th>Tier</th><th class="right">Over 1</th><th class="right">Over 2</th><th class="right">Over 3</th><th class="right">Over 4</th><th class="right">Over 5</th><th class="right">Best over</th><th class="right">Weakest over</th></tr></thead><tbody id="over_benchmark_tbody"></tbody></table>
   </div>
 </div>
 
-<script>
-Chart.defaults.font.family = "'DM Sans', sans-serif";
-Chart.defaults.font.size = 11;
-Chart.defaults.plugins.legend.display = false;
-
-// ── Runs tab ──
-function buildRunsMedian() {
-  destroyChart('runs_median');
-  reg('runs_median', new Chart(document.getElementById('runs_median'), {
-    type: 'bar',
-    data: { labels: TIERS, datasets: [{ data: TIERS.map(t=>RUNS[t].q50), backgroundColor: TIERS.map((_,i)=>TIER_COLORS[i]), borderRadius:4, borderWidth:0 }] },
-    options: { responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` Median: ${c.parsed.y} runs/match`}} },
-      scales:{ x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}}, y:{min:40,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}} }
-    }
-  }));
-}
-
-function buildRunsDist() {
-  destroyChart('runs_dist');
-  reg('runs_dist', new Chart(document.getElementById('runs_dist'), {
-    type: 'bar',
-    data: { labels: TIERS, datasets: [
-      {label:'q25',data:TIERS.map(t=>RUNS[t].q25),backgroundColor:'rgba(44,95,138,0.35)',borderRadius:2,borderWidth:0},
-      {label:'q50',data:TIERS.map(t=>RUNS[t].q50),backgroundColor:'rgba(44,95,138,0.55)',borderRadius:2,borderWidth:0},
-      {label:'q70',data:TIERS.map(t=>RUNS[t].q70),backgroundColor:'rgba(44,95,138,0.75)',borderRadius:2,borderWidth:0},
-      {label:'q90',data:TIERS.map(t=>RUNS[t].q90),backgroundColor:'rgba(44,95,138,1.0)', borderRadius:2,borderWidth:0}
-    ]},
-    options:{ responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:10,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildRunsHeatmap() {
-  const minV=48, maxV=84;
-  let html = `<table class="heatmap-table"><thead><tr>
-    <th class="left">Tier</th><th class="right">Teams</th><th class="right">Matches</th>
-    <th class="right">q25</th><th class="right">q50</th><th class="right">q70</th><th class="right">q90</th>
-  </tr></thead><tbody>`;
-  TIERS.forEach((t,i) => {
-    html += `<tr><td><span class="tier-badge" style="background:${TIER_COLORS[i]}22;color:${TIER_COLORS[i]};">${t}</span></td>
-      <td class="mono right">${RUNS[t].teams}</td><td class="mono right">${RUNS[t].unique.toLocaleString()}</td>`;
-    ['q25','q50','q70','q90'].forEach(p => {
-      const v=RUNS[t][p], intensity=(v-minV)/(maxV-minV);
-      const bg=`rgba(44,95,138,${(Math.max(0,intensity)*0.65).toFixed(2)})`, fg=intensity>0.4?'#fff':'var(--text)';
-      html+=`<td class="mono right" style="background:${bg};color:${fg};border-radius:3px;">${v}</td>`;
-    });
-    html+=`</tr>`;
-  });
-  document.getElementById('runs_heatmap').innerHTML = html + `</tbody></table>`;
-}
-
-function buildRunsTable() {
-  document.getElementById('runs_tbody').innerHTML = TIERS.map(t =>
-    `<tr><td>${t}</td><td class="mono right">${RUNS[t].teams}</td><td class="mono right">${RUNS[t].unique.toLocaleString()}</td>
-    <td class="mono right">${RUNS[t].q25}</td><td class="mono right">${RUNS[t].q50}</td><td class="mono right">${RUNS[t].q70}</td><td class="mono right">${RUNS[t].q90}</td></tr>`
-  ).join('');
-}
-
-// ── Wickets tab ──
-function buildWktMedian() {
-  destroyChart('wkt_median');
-  reg('wkt_median', new Chart(document.getElementById('wkt_median'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[{data:TIERS.map(t=>WKTS[t].q50),backgroundColor:TIERS.map((_,i)=>TIER_COLORS[i]),borderRadius:4,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Median: ${c.parsed.y} wickets/match`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{min:0,max:5,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWktDist() {
-  destroyChart('wkt_dist');
-  reg('wkt_dist', new Chart(document.getElementById('wkt_dist'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[
-      {label:'q25',data:TIERS.map(t=>WKTS[t].q25),backgroundColor:'rgba(176,58,46,0.35)',borderRadius:2,borderWidth:0},
-      {label:'q50',data:TIERS.map(t=>WKTS[t].q50),backgroundColor:'rgba(176,58,46,0.55)',borderRadius:2,borderWidth:0},
-      {label:'q70',data:TIERS.map(t=>WKTS[t].q70),backgroundColor:'rgba(176,58,46,0.75)',borderRadius:2,borderWidth:0},
-      {label:'q90',data:TIERS.map(t=>WKTS[t].q90),backgroundColor:'rgba(176,58,46,0.95)',borderRadius:2,borderWidth:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:10,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} wickets`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{min:0,max:5,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWktTable() {
-  document.getElementById('wkt_tbody').innerHTML = TIERS.map(t =>
-    `<tr><td>${t}</td><td class="mono right">${WKTS[t].teams}</td><td class="mono right">${WKTS[t].unique.toLocaleString()}</td>
-    <td class="mono right">${WKTS[t].q25}</td><td class="mono right">${WKTS[t].q50}</td><td class="mono right">${WKTS[t].q70}</td><td class="mono right">${WKTS[t].q90}</td></tr>`
-  ).join('');
-}
-
-// ── Win vs Loss tab ──
-let wlMetric = 'runs';
-function setWLMetric(metric, btn) {
-  wlMetric = metric;
-  document.querySelectorAll('.window-btn').forEach(b => { b.classList.remove('active'); });
-  btn.classList.add('active');
-  document.getElementById('wl-runs').style.display    = metric==='runs'    ? '' : 'none';
-  document.getElementById('wl-wickets').style.display = metric==='wickets' ? '' : 'none';
-}
-
-function buildWLRunsMedian() {
-  destroyChart('wl_runs_median');
-  reg('wl_runs_median', new Chart(document.getElementById('wl_runs_median'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[
-      {label:'Win', data:TIERS.map(t=>RUNS_WIN[t].q50), backgroundColor:'rgba(30,122,110,0.85)', borderRadius:3,borderWidth:0},
-      {label:'Loss',data:TIERS.map(t=>RUNS_LOSS[t].q50),backgroundColor:'rgba(176,58,46,0.85)',  borderRadius:3,borderWidth:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWLRunsDelta() {
-  destroyChart('wl_runs_delta');
-  reg('wl_runs_delta', new Chart(document.getElementById('wl_runs_delta'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[{
-      label:'Win q50 − Loss q50',
-      data:TIERS.map(t=>RUNS_WIN[t].q50-RUNS_LOSS[t].q50),
-      backgroundColor:TIERS.map((_,i)=>TIER_COLORS[i]),borderRadius:4,borderWidth:0
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Delta: +${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWLRunsTable() {
-  document.getElementById('wl_runs_tbody').innerHTML = TIERS.map(t => {
-    const d = RUNS_WIN[t].q50 - RUNS_LOSS[t].q50;
-    return `<tr><td>${t}</td>
-      <td class="mono right">${RUNS_WIN[t].q25}</td><td class="mono right">${RUNS_WIN[t].q50}</td>
-      <td class="mono right">${RUNS_WIN[t].q70}</td><td class="mono right">${RUNS_WIN[t].q90}</td>
-      <td class="mono right">${RUNS_LOSS[t].q25}</td><td class="mono right">${RUNS_LOSS[t].q50}</td>
-      <td class="mono right">${RUNS_LOSS[t].q70}</td><td class="mono right">${RUNS_LOSS[t].q90}</td>
-      <td class="mono right" style="color:var(--teal);font-weight:500;">+${d}</td></tr>`;
-  }).join('');
-}
-
-function buildWLWktMedian() {
-  destroyChart('wl_wkt_median');
-  reg('wl_wkt_median', new Chart(document.getElementById('wl_wkt_median'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[
-      {label:'Win', data:TIERS.map(t=>WKTS_WIN[t].q50), backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
-      {label:'Loss',data:TIERS.map(t=>WKTS_LOSS[t].q50),backgroundColor:'rgba(176,58,46,0.85)', borderRadius:3,borderWidth:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} wickets`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{min:0,max:6,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWLWktQ90() {
-  destroyChart('wl_wkt_q90');
-  reg('wl_wkt_q90', new Chart(document.getElementById('wl_wkt_q90'), {
-    type:'bar',
-    data:{labels:TIERS,datasets:[
-      {label:'Win q90', data:TIERS.map(t=>WKTS_WIN[t].q90), backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
-      {label:'Loss q90',data:TIERS.map(t=>WKTS_LOSS[t].q90),backgroundColor:'rgba(176,58,46,0.85)', borderRadius:3,borderWidth:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} wickets`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:{min:0,max:6,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-}
-
-function buildWLWktTable() {
-  document.getElementById('wl_wkt_tbody').innerHTML = TIERS.map(t => {
-    const d = WKTS_LOSS[t].q50 - WKTS_WIN[t].q50;
-    return `<tr><td>${t}</td>
-      <td class="mono right">${WKTS_WIN[t].q25}</td><td class="mono right">${WKTS_WIN[t].q50}</td>
-      <td class="mono right">${WKTS_WIN[t].q70}</td><td class="mono right">${WKTS_WIN[t].q90}</td>
-      <td class="mono right">${WKTS_LOSS[t].q25}</td><td class="mono right">${WKTS_LOSS[t].q50}</td>
-      <td class="mono right">${WKTS_LOSS[t].q70}</td><td class="mono right">${WKTS_LOSS[t].q90}</td>
-      <td class="mono right" style="color:var(--red);font-weight:500;">+${d}</td></tr>`;
-  }).join('');
-}
-
-// ── Over-level tab ──
-function renderOverLevel() {
-  const tier = document.getElementById('overTierSelect').value;
-  const pct  = document.getElementById('overPctSelect').value;
-  const winData  = OVER_WIN[tier].map(o => o[pct]);
-  const lossData = OVER_LOSS[tier].map(o => o[pct]);
-  const gapData  = winData.map((w,i) => w - lossData[i]);
-
-  // Line chart: win benchmark vs loss
-  destroyChart('over_line');
-  reg('over_line', new Chart(document.getElementById('over_line'), {
-    type:'line',
-    data:{labels:['Over 1','Over 2','Over 3','Over 4','Over 5'],datasets:[
-      {label:`Win (${pct})`, data:winData,  borderColor:'rgba(30,122,110,1)',  backgroundColor:'rgba(30,122,110,0.08)', fill:true, tension:0.3, pointRadius:5, borderWidth:2.5},
-      {label:`Loss (${pct})`,data:lossData, borderColor:'rgba(176,58,46,1)',   backgroundColor:'rgba(176,58,46,0.08)',  fill:true, tension:0.3, pointRadius:5, borderWidth:2.5, borderDash:[5,4]}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-
-  // Gap bar chart
-  destroyChart('over_gap');
-  reg('over_gap', new Chart(document.getElementById('over_gap'), {
-    type:'bar',
-    data:{labels:['Over 1','Over 2','Over 3','Over 4','Over 5'],datasets:[{
-      label:'Win − Loss gap',
-      data:gapData,
-      backgroundColor:gapData.map(v => v === Math.min(...gapData) ? 'rgba(176,58,46,0.85)' : 'rgba(44,95,138,0.75)'),
-      borderRadius:4, borderWidth:0
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Gap: +${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-
-  // All-tiers line chart (q50 win only)
-  destroyChart('over_all_tiers');
-  reg('over_all_tiers', new Chart(document.getElementById('over_all_tiers'), {
-    type:'line',
-    data:{labels:['Over 1','Over 2','Over 3','Over 4','Over 5'],datasets:
-      TIERS.map((t,i) => ({
-        label:t,
-        data:OVER_WIN[t].map(o=>o.q50),
-        borderColor:TIER_COLORS[i],
-        backgroundColor:'transparent',
-        tension:0.3,
-        pointRadius:4,
-        borderWidth: t===tier ? 3 : 1.5,
-        borderDash: t===tier ? [] : [4,3]
-      }))
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:10,font:{size:10}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y} runs`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}
-    }
-  }));
-
-  // Benchmark table
-  document.getElementById('over_benchmark_tbody').innerHTML = TIERS.map(t => {
-    const vals = OVER_WIN[t].map(o=>o.q50);
-    const best = Math.max(...vals), weak = Math.min(...vals);
-    const bestOver = vals.indexOf(best)+1, weakOver = vals.indexOf(weak)+1;
-    return `<tr style="${t===tier?'background:#f0f6fc;font-weight:500;':''}">
-      <td>${t}</td>
-      ${vals.map((v,i) => `<td class="mono right" style="${v===best?'color:var(--teal);font-weight:600;':v===weak?'color:var(--red);font-weight:600;':''}">${v}</td>`).join('')}
-      <td class="mono right" style="color:var(--teal);">Over ${bestOver}</td>
-      <td class="mono right" style="color:var(--red);">Over ${weakOver}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Page routing ──
-let winlossBuilt = false;
-let runscatBuilt = false;
-function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  btn.classList.add('active');
-  if (id==='winloss' && !winlossBuilt) {
-    buildWLRunsMedian(); buildWLRunsDelta(); buildWLRunsTable();
-    buildWLWktMedian(); buildWLWktQ90(); buildWLWktTable();
-    winlossBuilt = true;
-  }
-  if (id==='overlevel') renderOverLevel();
-  if (id==='runscat' && !runscatBuilt) { renderRunsCat(); runscatBuilt = true; }
-}
-
-// Init
-buildRunsMedian(); buildRunsDist(); buildRunsHeatmap(); buildRunsTable();
-buildWktMedian(); buildWktDist(); buildWktTable();
-</script>
-
-<!-- ══════════════ RUNS CATEGORY ══════════════ -->
+<!-- ══ RUNS CATEGORY ══ -->
 <div class="page" id="page-runscat">
-  <div class="section-label">Runs Category — Elite / Good / Needs Work / Bad · vs Win Benchmark · Per Tier × Over</div>
-
-  <div class="insight blue">
-    <strong>Benchmarks are tier-specific, based on win==1 data.</strong>
-    Elite = above win q75 · Good = win q50 to q75 · Needs Work = win q25 to q50 · Bad = below win q25.
-    "Bad" now means below what even the bottom quartile of winning innings looks like for that tier — a meaningful floor. Most users sit in Needs Work, confirming the benchmark is calibrated correctly.
-  </div>
-
-  <div class="insight amber">
-    <strong>Over 5 and Over 1 are consistently the weakest overs across tiers</strong> — Bad counts peak at these overs. Over 4 has the fewest Bad users in most tiers. TITAN has zero Elite users at overs 1, 2 and 5 — the higher benchmark makes Elite harder to achieve even for the top tier.
-  </div>
-
+  <div class="section-label">Runs Category — Elite/Good/Needs Work/Bad · vs Win Benchmark · Per Tier × Over</div>
+  <div class="insight blue"><strong>Benchmarks are tier-specific, based on win==1 over-level data.</strong> Elite = above win q75 · Good = win q50–q75 · Needs Work = win q25–q50 · Bad = below win q25. Needs Work is the dominant category — most users are between q25 and q50 of the win benchmark.</div>
+  <div class="insight amber"><strong>Over 5 and Over 1 are consistently the weakest overs</strong> — Bad counts peak at these overs. Over 4 has the fewest Bad users in most tiers. TITAN has zero Elite users at overs 1, 2 and 5 — the higher benchmark makes Elite harder to achieve.</div>
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
-    <div>
-      <label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
+    <div><label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
       <select class="tier-select" id="catTierSelect" onchange="renderRunsCat()">
-        <option value="CHALLENGER">CHALLENGER</option>
-        <option value="PROVEN">PROVEN</option>
-        <option value="ACCOMPLISHED">ACCOMPLISHED</option>
-        <option value="REMARKABLE">REMARKABLE</option>
-        <option value="MASTERFUL">MASTERFUL</option>
-        <option value="SUPREME">SUPREME</option>
-        <option value="LEGENDARY">LEGENDARY</option>
-        <option value="TITAN" selected>TITAN</option>
-      </select>
-    </div>
+        <option>CHALLENGER</option><option>PROVEN</option><option>ACCOMPLISHED</option><option>REMARKABLE</option><option>MASTERFUL</option><option>SUPREME</option><option>LEGENDARY</option><option value="TITAN" selected>TITAN</option>
+      </select></div>
     <div class="window-toggle" id="catViewToggle">
       <button class="window-btn active" onclick="setCatView('abs',this)">Absolute</button>
       <button class="window-btn" onclick="setCatView('pct',this)">Percentage</button>
     </div>
   </div>
-
   <div class="two-col">
-    <div class="card">
-      <h3>Category distribution by over — selected tier</h3>
-      <div class="chart-wrap-xl"><canvas id="cat_stacked"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Bad % by over — selected tier vs all tiers</h3>
-      <div class="chart-wrap-xl"><canvas id="cat_bad_line"></canvas></div>
-    </div>
+    <div class="card"><h3>Category distribution by over</h3><div class="chart-wrap-xl"><canvas id="cat_stacked"></canvas></div></div>
+    <div class="card"><h3>Bad % by over — selected tier vs all tiers</h3><div class="chart-wrap-xl"><canvas id="cat_bad_line"></canvas></div></div>
   </div>
-
-  <div class="full-col card">
-    <h3>Bad % heatmap — tier × over</h3>
-    <div class="heatmap-wrap" id="cat_heatmap"></div>
-  </div>
-
+  <div class="full-col card"><h3>Bad % heatmap — tier × over</h3><div class="heatmap-wrap" id="cat_heatmap"></div></div>
   <div class="full-col card">
     <h3>Full category table — selected tier</h3>
-    <table>
-      <thead><tr>
-        <th>Over</th>
-        <th class="right">Elite</th><th class="right">Elite %</th>
-        <th class="right">Good</th><th class="right">Good %</th>
-        <th class="right">Needs Work</th><th class="right">Needs Work %</th>
-        <th class="right">Bad</th><th class="right">Bad %</th>
-        <th class="right">Total</th>
-      </tr></thead>
-      <tbody id="cat_tbody"></tbody>
-    </table>
+    <table><thead><tr><th>Over</th><th class="right">Elite</th><th class="right">Elite %</th><th class="right">Good</th><th class="right">Good %</th><th class="right">Needs Work</th><th class="right">NW %</th><th class="right">Bad</th><th class="right">Bad %</th><th class="right">Total</th></tr></thead><tbody id="cat_tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ BOWLING ══ -->
+<div class="page" id="page-bowling">
+  <div class="section-label">Runs Conceded & Wickets Taken per Match · By Tier</div>
+  <div class="insight blue"><strong>The bowling gap between wins and losses is larger than the batting gap.</strong> Winners concede 39–43 runs at median; losers concede 56–63 — a 15–20 run gap. TITAN has the largest swing (42 win vs 63 loss = 21 runs).</div>
+  <div class="insight red"><strong>Wickets taken separates wins clearly.</strong> In wins q50=2–3 wickets taken; in losses q50=1–2. TITAN takes most wickets in wins (q50=3).</div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="label">Tightest in wins</div><div class="value">ACCOMPLISHED</div><div class="sub">q50: 39 runs conceded</div></div>
+    <div class="stat-card"><div class="label">Tightest in wins</div><div class="value">PROVEN</div><div class="sub">q50: 39 runs conceded</div></div>
+    <div class="stat-card"><div class="label">Leakiest in losses</div><div class="value">LEGENDARY</div><div class="sub">q50: 62 runs conceded</div></div>
+    <div class="stat-card"><div class="label">Largest win/loss gap</div><div class="value">TITAN</div><div class="sub">42 (win) vs 63 (loss) = 21 runs</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+    <span style="font-size:12px;color:var(--text-muted);">View:</span>
+    <div class="window-toggle" id="bowlingToggle">
+      <button class="window-btn active" onclick="setBowlingView('all',this)">Overall</button>
+      <button class="window-btn" onclick="setBowlingView('win',this)">Win</button>
+      <button class="window-btn" onclick="setBowlingView('loss',this)">Loss</button>
+      <button class="window-btn" onclick="setBowlingView('compare',this)">Win vs Loss</button>
+      <button class="window-btn" onclick="setBowlingView('wickets',this)">Wickets</button>
+    </div>
+  </div>
+  <div id="bowl-all">
+    <div class="two-col">
+      <div class="card"><h3>Median runs conceded/match — overall</h3><div class="chart-wrap-lg"><canvas id="bowl_all_median"></canvas></div></div>
+      <div class="card"><h3>Runs conceded distribution</h3><div class="chart-wrap-lg"><canvas id="bowl_all_dist"></canvas></div></div>
+    </div>
+    <div class="full-col card"><h3>Overall table</h3><table><thead><tr><th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody id="bowl_all_tbody"></tbody></table></div>
+  </div>
+  <div id="bowl-win" style="display:none;">
+    <div class="two-col">
+      <div class="card"><h3>Median runs conceded — win==1</h3><div class="chart-wrap-lg"><canvas id="bowl_win_median"></canvas></div></div>
+      <div class="card"><h3>Distribution — win==1</h3><div class="chart-wrap-lg"><canvas id="bowl_win_dist"></canvas></div></div>
+    </div>
+    <div class="full-col card"><h3>Win==1 table</h3><table><thead><tr><th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody id="bowl_win_tbody"></tbody></table></div>
+  </div>
+  <div id="bowl-loss" style="display:none;">
+    <div class="two-col">
+      <div class="card"><h3>Median runs conceded — win==0</h3><div class="chart-wrap-lg"><canvas id="bowl_loss_median"></canvas></div></div>
+      <div class="card"><h3>Distribution — win==0</h3><div class="chart-wrap-lg"><canvas id="bowl_loss_dist"></canvas></div></div>
+    </div>
+    <div class="full-col card"><h3>Loss table</h3><table><thead><tr><th>Tier</th><th class="right">Teams</th><th class="right">Unique matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody id="bowl_loss_tbody"></tbody></table></div>
+  </div>
+  <div id="bowl-compare" style="display:none;">
+    <div class="two-col">
+      <div class="card"><h3>Median runs conceded — Win vs Loss</h3><div class="chart-wrap-lg"><canvas id="bowl_cmp_median"></canvas></div></div>
+      <div class="card"><h3>Loss q50 minus Win q50</h3><div class="chart-wrap-lg"><canvas id="bowl_cmp_delta"></canvas></div></div>
+    </div>
+    <div class="full-col card"><h3>Comparison table</h3><table><thead><tr><th>Tier</th><th class="right">Win q25</th><th class="right">Win q50</th><th class="right">Win q75</th><th class="right">Win q90</th><th class="right">Loss q25</th><th class="right">Loss q50</th><th class="right">Loss q75</th><th class="right">Loss q90</th><th class="right">Δ q50</th></tr></thead><tbody id="bowl_cmp_tbody"></tbody></table></div>
+  </div>
+  <div id="bowl-wickets" style="display:none;">
+    <div class="two-col">
+      <div class="card"><h3>Wickets taken — Win vs Loss q50</h3><div class="chart-wrap-lg"><canvas id="bowl_wkt_cmp"></canvas></div></div>
+      <div class="card"><h3>Wickets taken q90 — Win vs Loss</h3><div class="chart-wrap-lg"><canvas id="bowl_wkt_q90"></canvas></div></div>
+    </div>
+    <div class="full-col card"><h3>Wickets taken detail</h3><table><thead><tr><th>Tier</th><th class="right">All q25</th><th class="right">All q50</th><th class="right">All q75</th><th class="right">Win q50</th><th class="right">Win q75</th><th class="right">Loss q50</th><th class="right">Loss q75</th></tr></thead><tbody id="bowl_wkt_tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══ BOWLING CATEGORY ══ -->
+<div class="page" id="page-bowlcat">
+  <div class="section-label">Bowling Runs Conceded Category — Elite/Good/Needs Work/Bad · vs Win Benchmark · Per Tier × Over</div>
+  <div class="insight blue"><strong>Categories are inverted vs batting — lower runs conceded = better.</strong> Elite = below win q25 · Good = win q25–q50 · Needs Work = win q50–q75 · Bad = above win q75. Benchmarks are tier-specific, based on win==1 over-level data.</div>
+  <div class="insight green"><strong>Corrected data shows much healthier bowling than previously thought.</strong> CHALLENGER, ACCOMPLISHED and PROVEN all show strong Elite and Good presence after removing the install_date filter. Needs Work is dominant across all tiers — most users bowl near the win benchmark. Over 2 and over 5 tend to have the most Bad users across tiers.</div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+    <div><label style="font-size:12px;color:var(--text-muted);margin-right:8px;">Tier:</label>
+      <select class="tier-select" id="bowlcatTierSelect" onchange="renderBowlCat()">
+        <option>CHALLENGER</option><option>PROVEN</option><option>ACCOMPLISHED</option><option>REMARKABLE</option><option>MASTERFUL</option><option>SUPREME</option><option>LEGENDARY</option><option value="TITAN" selected>TITAN</option>
+      </select></div>
+    <div class="window-toggle" id="bowlcatViewToggle">
+      <button class="window-btn active" onclick="setBowlCatView('abs',this)">Absolute</button>
+      <button class="window-btn" onclick="setBowlCatView('pct',this)">Percentage</button>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card"><h3>Category distribution by over</h3><div class="chart-wrap-xl"><canvas id="bowlcat_stacked"></canvas></div></div>
+    <div class="card"><h3>Bad % by over — selected tier vs all tiers</h3><div class="chart-wrap-xl"><canvas id="bowlcat_bad_line"></canvas></div></div>
+  </div>
+  <div class="full-col card"><h3>Bad % heatmap — tier × over</h3><div class="heatmap-wrap" id="bowlcat_heatmap"></div></div>
+  <div class="full-col card">
+    <h3>Full category table — selected tier</h3>
+    <table><thead><tr><th>Over</th><th class="right">Elite</th><th class="right">Elite %</th><th class="right">Good</th><th class="right">Good %</th><th class="right">Needs Work</th><th class="right">NW %</th><th class="right">Bad</th><th class="right">Bad %</th><th class="right">Total</th></tr></thead><tbody id="bowlcat_tbody"></tbody></table>
   </div>
 </div>
 
 <script>
-const CAT_DATA = {
-  ACCOMPLISHED: {
-    1: {Elite:6,  Good:101, NeedsWork:119, Bad:20},
-    2: {Elite:6,  Good:81,  NeedsWork:149, Bad:10},
-    3: {Elite:5,  Good:72,  NeedsWork:159, Bad:10},
-    4: {Elite:3,  Good:98,  NeedsWork:132, Bad:13},
-    5: {Elite:1,  Good:88,  NeedsWork:125, Bad:32}
-  },
-  CHALLENGER: {
-    1: {Elite:2,  Good:56,  NeedsWork:101, Bad:18},
-    2: {Elite:2,  Good:57,  NeedsWork:108, Bad:10},
-    3: {Elite:1,  Good:69,  NeedsWork:98,  Bad:9},
-    4: {Elite:7,  Good:62,  NeedsWork:95,  Bad:12},
-    5: {Elite:5,  Good:47,  NeedsWork:98,  Bad:26}
-  },
-  LEGENDARY: {
-    1: {Elite:1,  Good:34,  NeedsWork:39,  Bad:7},
-    2: {Elite:0,  Good:30,  NeedsWork:47,  Bad:4},
-    3: {Elite:1,  Good:29,  NeedsWork:47,  Bad:4},
-    4: {Elite:1,  Good:29,  NeedsWork:51,  Bad:0},
-    5: {Elite:1,  Good:23,  NeedsWork:49,  Bad:8}
-  },
-  MASTERFUL: {
-    1: {Elite:3,  Good:28,  NeedsWork:105, Bad:31},
-    2: {Elite:2,  Good:51,  NeedsWork:99,  Bad:15},
-    3: {Elite:2,  Good:30,  NeedsWork:123, Bad:12},
-    4: {Elite:1,  Good:80,  NeedsWork:69,  Bad:17},
-    5: {Elite:3,  Good:53,  NeedsWork:83,  Bad:28}
-  },
-  PROVEN: {
-    1: {Elite:6,  Good:65,  NeedsWork:100, Bad:15},
-    2: {Elite:4,  Good:58,  NeedsWork:113, Bad:11},
-    3: {Elite:4,  Good:62,  NeedsWork:110, Bad:10},
-    4: {Elite:6,  Good:98,  NeedsWork:76,  Bad:6},
-    5: {Elite:10, Good:57,  NeedsWork:94,  Bad:25}
-  },
-  REMARKABLE: {
-    1: {Elite:5,  Good:67,  NeedsWork:145, Bad:21},
-    2: {Elite:1,  Good:77,  NeedsWork:141, Bad:19},
-    3: {Elite:4,  Good:72,  NeedsWork:137, Bad:25},
-    4: {Elite:2,  Good:106, NeedsWork:121, Bad:9},
-    5: {Elite:7,  Good:58,  NeedsWork:134, Bad:39}
-  },
-  SUPREME: {
-    1: {Elite:1,  Good:17,  NeedsWork:66,  Bad:8},
-    2: {Elite:0,  Good:27,  NeedsWork:60,  Bad:5},
-    3: {Elite:0,  Good:33,  NeedsWork:55,  Bad:4},
-    4: {Elite:1,  Good:43,  NeedsWork:45,  Bad:3},
-    5: {Elite:4,  Good:45,  NeedsWork:27,  Bad:16}
-  },
-  TITAN: {
-    1: {Elite:0,  Good:39,  NeedsWork:65,  Bad:10},
-    2: {Elite:0,  Good:32,  NeedsWork:76,  Bad:6},
-    3: {Elite:1,  Good:45,  NeedsWork:64,  Bad:4},
-    4: {Elite:2,  Good:43,  NeedsWork:66,  Bad:3},
-    5: {Elite:0,  Good:41,  NeedsWork:62,  Bad:11}
-  }
-};
+const CAT_KEYS=['Elite','Good','NeedsWork','Bad'];
+const CAT_LABELS=['Elite','Good','Needs Work','Bad'];
+const CAT_COLORS=['rgba(30,122,110,0.9)','rgba(44,95,138,0.85)','rgba(160,92,10,0.8)','rgba(176,58,46,0.9)'];
 
-const CAT_COLORS = {
-  Elite:      'rgba(30,122,110,0.9)',
-  Good:       'rgba(44,95,138,0.85)',
-  NeedsWork:  'rgba(160,92,10,0.8)',
-  Bad:        'rgba(176,58,46,0.9)'
-};
-const CAT_LABELS = ['Elite','Good','Needs Work','Bad'];
-const CAT_KEYS   = ['Elite','Good','NeedsWork','Bad'];
+function fmtR(n){return n>=1e3?(n/1e3).toFixed(0)+'K':''+n}
 
-let catView = 'abs';
-
-function setCatView(v, btn) {
-  catView = v;
-  btn.closest('#catViewToggle').querySelectorAll('.window-btn').forEach(b=>{b.classList.remove('active');b.style.background='#fff';b.style.color='var(--text-muted)';});
-  btn.classList.add('active'); btn.style.background='var(--accent)'; btn.style.color='#fff';
-  renderRunsCat();
+function makeBar(id,labels,data,colors,opts){
+  opts=opts||{};
+  destroyChart(id);
+  var cfg={type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:Object.assign({legend:{display:false}},opts.plugins||{}),scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:Object.assign({ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}},opts.yScale||{})}}};
+  return reg(id,new Chart(document.getElementById(id),cfg));
+}
+function makeGroupedBar(id,labels,datasets,opts){
+  opts=opts||{};
+  destroyChart(id);
+  var cfg={type:'bar',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:Object.assign({legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}}},opts.plugins||{}),scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30}},y:Object.assign({ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}},opts.yScale||{})}}};
+  return reg(id,new Chart(document.getElementById(id),cfg));
+}
+function makeStackedBar(id,labels,datasets,pct){
+  destroyChart(id);
+  var totals=[];
+  if(datasets.length>0){var n=datasets[0].data.length;for(var i=0;i<n;i++){var t=0;datasets.forEach(function(d){t+=d.data[i]||0;});totals.push(t);}}
+  var cfg={type:'bar',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:10,font:{size:11}}},tooltip:{callbacks:{label:function(c){var val=c.parsed.y;var tot=totals[c.dataIndex]||1;var p=(val/tot*100).toFixed(1);return pct?' '+c.dataset.label+': '+val+'%':' '+c.dataset.label+': '+val+' users ('+p+'%)';}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,ticks:{callback:function(v){return pct?v+'%':v;},font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}};
+  return reg(id,new Chart(document.getElementById(id),cfg));
+}
+function makeLine(id,labels,datasets){
+  destroyChart(id);
+  var cfg={type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}};
+  return reg(id,new Chart(document.getElementById(id),cfg));
 }
 
-function renderRunsCat() {
-  const tier = document.getElementById('catTierSelect').value;
-  const d = CAT_DATA[tier];
-  const overs = [1,2,3,4,5];
-  const totals = overs.map(o => CAT_KEYS.reduce((s,k)=>s+(d[o][k]||0),0));
-
-  // Stacked bar
-  destroyChart('cat_stacked');
-  const datasets = CAT_KEYS.map((k,i) => ({
-    label: CAT_LABELS[i],
-    data: overs.map((o,oi) => catView==='pct' ? +((d[o][k]||0)/totals[oi]*100).toFixed(1) : (d[o][k]||0)),
-    backgroundColor: Object.values(CAT_COLORS)[i],
-    borderWidth: 0, borderRadius: 2
-  }));
-  reg('cat_stacked', new Chart(document.getElementById('cat_stacked'), {
-    type:'bar',
-    data:{labels:overs.map(o=>'Over '+o), datasets},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>{
-          const tot = totals[c.dataIndex];
-          const pct = tot ? (c.parsed.y/tot*100).toFixed(1) : 0;
-          return catView==='pct'
-            ? ` ${c.dataset.label}: ${c.parsed.y}%`
-            : ` ${c.dataset.label}: ${c.parsed.y} users (${pct}%)`;
-        }}}
-      },
-      scales:{
-        x:{stacked:true, grid:{display:false}, ticks:{font:{size:11}}},
-        y:{stacked:true, ticks:{callback:v=>catView==='pct'?v+'%':v, font:{size:11}}, grid:{color:'rgba(0,0,0,0.04)'}}
-      }
-    }
-  }));
-
-  // Bad % line — selected tier vs all tiers
-  destroyChart('cat_bad_line');
-  const allTierDatasets = TIERS.map((t,i) => {
-    const td = CAT_DATA[t];
-    const badPcts = overs.map(o => {
-      const tot = CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0);
-      return tot ? +((td[o].Bad||0)/tot*100).toFixed(1) : 0;
-    });
-    return {
-      label: t,
-      data: badPcts,
-      borderColor: t===tier ? 'rgba(176,58,46,1)' : TIER_COLORS[TIERS.indexOf(t)],
-      backgroundColor: 'transparent',
-      tension: 0.3, pointRadius: t===tier ? 5 : 3,
-      borderWidth: t===tier ? 3 : 1.2,
-      borderDash: t===tier ? [] : [4,3]
-    };
+// ── Runs tab ──
+function buildRunsTab(){
+  makeBar('runs_median',TIERS,TIERS.map(t=>RUNS[t].q50),TIERS.map((_,i)=>TIER_COLORS[i]),{plugins:{tooltip:{callbacks:{label:c=>` Median: ${c.parsed.y} runs/match`}}},yScale:{min:40}});
+  makeGroupedBar('runs_dist',TIERS,[
+    {label:'q25',data:TIERS.map(t=>RUNS[t].q25),backgroundColor:'rgba(44,95,138,0.35)',borderRadius:2,borderWidth:0},
+    {label:'q50',data:TIERS.map(t=>RUNS[t].q50),backgroundColor:'rgba(44,95,138,0.55)',borderRadius:2,borderWidth:0},
+    {label:'q75',data:TIERS.map(t=>RUNS[t].q75),backgroundColor:'rgba(44,95,138,0.75)',borderRadius:2,borderWidth:0},
+    {label:'q90',data:TIERS.map(t=>RUNS[t].q90),backgroundColor:'rgba(44,95,138,1.0)',borderRadius:2,borderWidth:0}
+  ]);
+  const minV=48,maxV=84;
+  let h=`<table class="heatmap-table"><thead><tr><th class="left">Tier</th><th class="right">Teams</th><th class="right">Matches</th><th class="right">q25</th><th class="right">q50</th><th class="right">q75</th><th class="right">q90</th></tr></thead><tbody>`;
+  TIERS.forEach((t,i)=>{
+    h+=`<tr><td><span class="tier-badge" style="background:${TIER_COLORS[i]}22;color:${TIER_COLORS[i]};">${t}</span></td><td class="mono right">${RUNS[t].teams}</td><td class="mono right">${RUNS[t].unique.toLocaleString()}</td>`;
+    ['q25','q50','q75','q90'].forEach(p=>{const v=RUNS[t][p],intensity=(v-minV)/(maxV-minV),bg=`rgba(44,95,138,${(Math.max(0,intensity)*0.65).toFixed(2)})`,fg=intensity>0.4?'#fff':'var(--text)';h+=`<td class="mono right" style="background:${bg};color:${fg};border-radius:3px;">${v}</td>`;});
+    h+=`</tr>`;
   });
-  reg('cat_bad_line', new Chart(document.getElementById('cat_bad_line'), {
-    type:'line',
-    data:{labels:overs.map(o=>'Over '+o), datasets:allTierDatasets},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:true,position:'top',labels:{boxWidth:10,padding:8,font:{size:10}}},
-        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}% Bad`}}
-      },
-      scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}
-      }
-    }
-  }));
+  document.getElementById('runs_heatmap').innerHTML=h+'</tbody></table>';
+  document.getElementById('runs_tbody').innerHTML=TIERS.map(t=>`<tr><td>${t}</td><td class="mono right">${RUNS[t].teams}</td><td class="mono right">${RUNS[t].unique.toLocaleString()}</td><td class="mono right">${RUNS[t].q25}</td><td class="mono right">${RUNS[t].q50}</td><td class="mono right">${RUNS[t].q75}</td><td class="mono right">${RUNS[t].q90}</td></tr>`).join('');
+}
 
-  // Heatmap — Bad % across all tiers × overs
-  let html = `<table class="heatmap-table"><thead><tr>
-    <th class="left">Tier</th>
-    ${overs.map(o=>`<th>Over ${o}</th>`).join('')}
-  </tr></thead><tbody>`;
-  TIERS.forEach((t,ti) => {
-    const td = CAT_DATA[t];
-    html += `<tr><td><span class="tier-badge" style="background:${TIER_COLORS[ti]}22;color:${TIER_COLORS[ti]};">${t}</span></td>`;
-    overs.forEach(o => {
-      const tot = CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0);
-      const badPct = tot ? +((td[o].Bad||0)/tot*100).toFixed(1) : 0;
-      const intensity = Math.min(badPct/30, 1);
-      const bg = `rgba(176,58,46,${(intensity*0.7).toFixed(2)})`;
-      const fg = intensity > 0.4 ? '#fff' : 'var(--text)';
-      html += `<td class="mono right" style="background:${bg};color:${fg};border-radius:3px;">${badPct}%</td>`;
-    });
-    html += `</tr>`;
-  });
-  document.getElementById('cat_heatmap').innerHTML = html + `</tbody></table>`;
+// ── Wickets tab ──
+function buildWktsTab(){
+  makeBar('wkt_median',TIERS,TIERS.map(t=>WKTS[t].q50),TIERS.map((_,i)=>TIER_COLORS[i]),{plugins:{tooltip:{callbacks:{label:c=>` Median: ${c.parsed.y} wickets/match`}}},yScale:{min:0,max:5,ticks:{stepSize:1}}});
+  makeGroupedBar('wkt_dist',TIERS,[
+    {label:'q25',data:TIERS.map(t=>WKTS[t].q25),backgroundColor:'rgba(176,58,46,0.35)',borderRadius:2,borderWidth:0},
+    {label:'q50',data:TIERS.map(t=>WKTS[t].q50),backgroundColor:'rgba(176,58,46,0.55)',borderRadius:2,borderWidth:0},
+    {label:'q75',data:TIERS.map(t=>WKTS[t].q75),backgroundColor:'rgba(176,58,46,0.75)',borderRadius:2,borderWidth:0},
+    {label:'q90',data:TIERS.map(t=>WKTS[t].q90),backgroundColor:'rgba(176,58,46,0.95)',borderRadius:2,borderWidth:0}
+  ]);
+  document.getElementById('wkt_tbody').innerHTML=TIERS.map(t=>`<tr><td>${t}</td><td class="mono right">${WKTS[t].teams}</td><td class="mono right">${WKTS[t].unique.toLocaleString()}</td><td class="mono right">${WKTS[t].q25}</td><td class="mono right">${WKTS[t].q50}</td><td class="mono right">${WKTS[t].q75}</td><td class="mono right">${WKTS[t].q90}</td></tr>`).join('');
+}
 
-  // Detail table
-  document.getElementById('cat_tbody').innerHTML = overs.map(o => {
-    const tot = totals[overs.indexOf(o)];
-    const p = k => tot ? ((d[o][k]||0)/tot*100).toFixed(1)+'%' : '0%';
-    return `<tr>
-      <td><strong>Over ${o}</strong></td>
-      <td class="mono right" style="color:var(--teal);">${d[o].Elite||0}</td>
-      <td class="right" style="font-size:11px;color:var(--text-muted);">${p('Elite')}</td>
-      <td class="mono right" style="color:var(--accent);">${d[o].Good||0}</td>
-      <td class="right" style="font-size:11px;color:var(--text-muted);">${p('Good')}</td>
-      <td class="mono right" style="color:var(--amber);">${d[o].NeedsWork||0}</td>
-      <td class="right" style="font-size:11px;color:var(--text-muted);">${p('NeedsWork')}</td>
-      <td class="mono right" style="color:var(--red);">${d[o].Bad||0}</td>
-      <td class="right" style="font-size:11px;color:var(--text-muted);">${p('Bad')}</td>
-      <td class="mono right">${tot}</td>
-    </tr>`;
+// ── Win vs Loss tab ──
+let wlMetric='runs';
+function setWLMetric(m,btn){
+  wlMetric=m;
+  document.querySelectorAll('.window-toggle .window-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('wl-runs').style.display=m==='runs'?'':'none';
+  document.getElementById('wl-wickets').style.display=m==='wickets'?'':'none';
+}
+function buildWLTab(){
+  makeGroupedBar('wl_runs_median',TIERS,[
+    {label:'Win',data:TIERS.map(t=>RUNS_WIN[t].q50),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss',data:TIERS.map(t=>RUNS_LOSS[t].q50),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ]);
+  makeBar('wl_runs_delta',TIERS,TIERS.map(t=>RUNS_WIN[t].q50-RUNS_LOSS[t].q50),TIERS.map((_,i)=>TIER_COLORS[i]),{plugins:{tooltip:{callbacks:{label:c=>` Delta: +${c.parsed.y} runs`}}}});
+  document.getElementById('wl_runs_tbody').innerHTML=TIERS.map(t=>{const d=RUNS_WIN[t].q50-RUNS_LOSS[t].q50;return`<tr><td>${t}</td><td class="mono right">${RUNS_WIN[t].q25}</td><td class="mono right">${RUNS_WIN[t].q50}</td><td class="mono right">${RUNS_WIN[t].q75}</td><td class="mono right">${RUNS_WIN[t].q90}</td><td class="mono right">${RUNS_LOSS[t].q25}</td><td class="mono right">${RUNS_LOSS[t].q50}</td><td class="mono right">${RUNS_LOSS[t].q75}</td><td class="mono right">${RUNS_LOSS[t].q90}</td><td class="mono right" style="color:var(--teal);font-weight:500;">+${d}</td></tr>`;}).join('');
+  makeGroupedBar('wl_wkt_median',TIERS,[
+    {label:'Win',data:TIERS.map(t=>WKTS_WIN[t].q50),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss',data:TIERS.map(t=>WKTS_LOSS[t].q50),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ],{yScale:{min:0,max:6,ticks:{stepSize:1}}});
+  makeGroupedBar('wl_wkt_q90',TIERS,[
+    {label:'Win q90',data:TIERS.map(t=>WKTS_WIN[t].q90),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss q90',data:TIERS.map(t=>WKTS_LOSS[t].q90),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ],{yScale:{min:0,max:6,ticks:{stepSize:1}}});
+  document.getElementById('wl_wkt_tbody').innerHTML=TIERS.map(t=>{const d=WKTS_LOSS[t].q50-WKTS_WIN[t].q50;return`<tr><td>${t}</td><td class="mono right">${WKTS_WIN[t].q25}</td><td class="mono right">${WKTS_WIN[t].q50}</td><td class="mono right">${WKTS_WIN[t].q75}</td><td class="mono right">${WKTS_WIN[t].q90}</td><td class="mono right">${WKTS_LOSS[t].q25}</td><td class="mono right">${WKTS_LOSS[t].q50}</td><td class="mono right">${WKTS_LOSS[t].q75}</td><td class="mono right">${WKTS_LOSS[t].q90}</td><td class="mono right" style="color:var(--red);font-weight:500;">+${d}</td></tr>`;}).join('');
+}
+
+// ── Over-level tab ──
+function renderOverLevel(){
+  const tier=document.getElementById('overTierSelect').value;
+  const pct=document.getElementById('overPctSelect').value;
+  const winD=OVER_WIN[tier].map(o=>o[pct]);
+  const lossD=OVER_LOSS[tier].map(o=>o[pct]);
+  const labels=['Over 1','Over 2','Over 3','Over 4','Over 5'];
+  makeLine('over_line',labels,[
+    {label:`Win (${pct})`,data:winD,borderColor:'rgba(30,122,110,1)',backgroundColor:'rgba(30,122,110,0.08)',fill:true,tension:0.3,pointRadius:5,borderWidth:2.5},
+    {label:`Loss (${pct})`,data:lossD,borderColor:'rgba(176,58,46,1)',backgroundColor:'rgba(176,58,46,0.08)',fill:true,tension:0.3,pointRadius:5,borderWidth:2.5,borderDash:[5,4]}
+  ]);
+  const gapD=winD.map((w,i)=>w-lossD[i]);
+  makeBar('over_gap',labels,gapD,gapD.map(v=>v===Math.min(...gapD)?'rgba(176,58,46,0.85)':'rgba(44,95,138,0.75)'),{plugins:{tooltip:{callbacks:{label:c=>` Gap: +${c.parsed.y} runs`}}}});
+  makeLine('over_all_tiers',labels,TIERS.map((t,i)=>({label:t,data:OVER_WIN[t].map(o=>o.q50),borderColor:TIER_COLORS[i],backgroundColor:'transparent',tension:0.3,pointRadius:4,borderWidth:t===tier?3:1.5,borderDash:t===tier?[]:[4,3]})));
+  document.getElementById('over_benchmark_tbody').innerHTML=TIERS.map(t=>{
+    const vals=OVER_WIN[t].map(o=>o.q50);
+    const best=Math.max(...vals),weak=Math.min(...vals);
+    return`<tr style="${t===tier?'background:#f0f6fc;font-weight:500;':''}"><td>${t}</td>${vals.map((v,i)=>`<td class="mono right" style="${v===best?'color:var(--teal);font-weight:600;':v===weak?'color:var(--red);font-weight:600;':''}">${v}</td>`).join('')}<td class="mono right" style="color:var(--teal);">Over ${vals.indexOf(best)+1}</td><td class="mono right" style="color:var(--red);">Over ${vals.indexOf(weak)+1}</td></tr>`;
   }).join('');
 }
+
+// ── Runs category tab ──
+let catView='abs';
+function setCatView(v,btn){catView=v;btn.closest('#catViewToggle').querySelectorAll('.window-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderRunsCat()}
+function renderRunsCat(){
+  const tier=document.getElementById('catTierSelect').value;
+  const d=CAT_DATA[tier];
+  const overs=[1,2,3,4,5];
+  const totals=overs.map(o=>CAT_KEYS.reduce((s,k)=>s+(d[o][k]||0),0));
+  makeStackedBar('cat_stacked',overs.map(o=>'Over '+o),CAT_KEYS.map((k,i)=>({label:CAT_LABELS[i],data:overs.map((o,oi)=>catView==='pct'?+((d[o][k]||0)/totals[oi]*100).toFixed(1):(d[o][k]||0)),backgroundColor:CAT_COLORS[i],borderWidth:0,borderRadius:2})),catView==='pct');
+  makeLine('cat_bad_line',overs.map(o=>'Over '+o),TIERS.map((t,i)=>{const td=CAT_DATA[t];return{label:t,data:overs.map(o=>{const tot=CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0);return tot?+((td[o].Bad||0)/tot*100).toFixed(1):0}),borderColor:t===tier?'rgba(176,58,46,1)':TIER_COLORS[i],backgroundColor:'transparent',tension:0.3,pointRadius:t===tier?5:3,borderWidth:t===tier?3:1.2,borderDash:t===tier?[]:[4,3]}}));
+  let h=`<table class="heatmap-table"><thead><tr><th class="left">Tier</th>${overs.map(o=>`<th>Over ${o}</th>`).join('')}</tr></thead><tbody>`;
+  TIERS.forEach((t,ti)=>{const td=CAT_DATA[t];h+=`<tr><td><span class="tier-badge" style="background:${TIER_COLORS[ti]}22;color:${TIER_COLORS[ti]};">${t}</span></td>`;overs.forEach(o=>{const tot=CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0),bp=tot?+((td[o].Bad||0)/tot*100).toFixed(1):0,intensity=Math.min(bp/30,1),bg=`rgba(176,58,46,${(intensity*0.7).toFixed(2)})`,fg=intensity>0.4?'#fff':'var(--text)';h+=`<td class="mono right" style="background:${bg};color:${fg};border-radius:3px;">${bp}%</td>`;});h+=`</tr>`;});
+  document.getElementById('cat_heatmap').innerHTML=h+'</tbody></table>';
+  document.getElementById('cat_tbody').innerHTML=overs.map(o=>{const tot=totals[overs.indexOf(o)],p=k=>tot?((d[o][k]||0)/tot*100).toFixed(1)+'%':'0%';return`<tr><td><strong>Over ${o}</strong></td><td class="mono right" style="color:var(--teal);">${d[o].Elite||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Elite')}</td><td class="mono right" style="color:var(--accent);">${d[o].Good||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Good')}</td><td class="mono right" style="color:var(--amber);">${d[o].NeedsWork||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('NeedsWork')}</td><td class="mono right" style="color:var(--red);">${d[o].Bad||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Bad')}</td><td class="mono right">${tot}</td></tr>`;}).join('');
+}
+
+// ── Bowling tab ──
+let bowlingView='all';
+function setBowlingView(v,btn){
+  bowlingView=v;
+  btn.closest('#bowlingToggle').querySelectorAll('.window-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  ['all','win','loss','compare','wickets'].forEach(x=>document.getElementById('bowl-'+x).style.display=x===v?'':'none');
+}
+function buildBowlingTab(){
+  ['all','win','loss'].forEach(w=>{
+    const obj=w==='all'?BOWL_ALL:w==='win'?BOWL_WIN:BOWL_LOSS;
+    makeBar(`bowl_${w}_median`,TIERS,TIERS.map(t=>obj[t].q50),TIERS.map((_,i)=>TIER_COLORS[i]));
+    makeGroupedBar(`bowl_${w}_dist`,TIERS,[
+      {label:'q25',data:TIERS.map(t=>obj[t].q25),backgroundColor:'rgba(176,58,46,0.3)',borderRadius:2,borderWidth:0},
+      {label:'q50',data:TIERS.map(t=>obj[t].q50),backgroundColor:'rgba(176,58,46,0.5)',borderRadius:2,borderWidth:0},
+      {label:'q75',data:TIERS.map(t=>obj[t].q75),backgroundColor:'rgba(176,58,46,0.7)',borderRadius:2,borderWidth:0},
+      {label:'q90',data:TIERS.map(t=>obj[t].q90),backgroundColor:'rgba(176,58,46,0.9)',borderRadius:2,borderWidth:0}
+    ]);
+    document.getElementById(`bowl_${w}_tbody`).innerHTML=TIERS.map(t=>`<tr><td>${t}</td><td class="mono right">${obj[t].teams}</td><td class="mono right">${obj[t].unique.toLocaleString()}</td><td class="mono right">${obj[t].q25}</td><td class="mono right">${obj[t].q50}</td><td class="mono right">${obj[t].q75}</td><td class="mono right">${obj[t].q90}</td></tr>`).join('');
+  });
+  makeGroupedBar('bowl_cmp_median',TIERS,[
+    {label:'Win',data:TIERS.map(t=>BOWL_WIN[t].q50),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss',data:TIERS.map(t=>BOWL_LOSS[t].q50),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ]);
+  makeBar('bowl_cmp_delta',TIERS,TIERS.map(t=>BOWL_LOSS[t].q50-BOWL_WIN[t].q50),TIERS.map((_,i)=>TIER_COLORS[i]));
+  document.getElementById('bowl_cmp_tbody').innerHTML=TIERS.map(t=>{const d=BOWL_LOSS[t].q50-BOWL_WIN[t].q50;return`<tr><td>${t}</td><td class="mono right">${BOWL_WIN[t].q25}</td><td class="mono right">${BOWL_WIN[t].q50}</td><td class="mono right">${BOWL_WIN[t].q75}</td><td class="mono right">${BOWL_WIN[t].q90}</td><td class="mono right">${BOWL_LOSS[t].q25}</td><td class="mono right">${BOWL_LOSS[t].q50}</td><td class="mono right">${BOWL_LOSS[t].q75}</td><td class="mono right">${BOWL_LOSS[t].q90}</td><td class="mono right" style="color:var(--red);font-weight:500;">+${d}</td></tr>`;}).join('');
+  makeGroupedBar('bowl_wkt_cmp',TIERS,[
+    {label:'Win q50',data:TIERS.map(t=>WKTS_WIN_BOWL[t].q50),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss q50',data:TIERS.map(t=>WKTS_LOSS_BOWL[t].q50),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ],{yScale:{min:0,max:6,ticks:{stepSize:1}}});
+  makeGroupedBar('bowl_wkt_q90',TIERS,[
+    {label:'Win q90',data:TIERS.map(t=>WKTS_WIN_BOWL[t].q90),backgroundColor:'rgba(30,122,110,0.85)',borderRadius:3,borderWidth:0},
+    {label:'Loss q90',data:TIERS.map(t=>WKTS_LOSS_BOWL[t].q90),backgroundColor:'rgba(176,58,46,0.85)',borderRadius:3,borderWidth:0}
+  ],{yScale:{min:0,max:6,ticks:{stepSize:1}}});
+  document.getElementById('bowl_wkt_tbody').innerHTML=TIERS.map(t=>`<tr><td>${t}</td><td class="mono right">${WKTS_ALL_BOWL[t].q25}</td><td class="mono right">${WKTS_ALL_BOWL[t].q50}</td><td class="mono right">${WKTS_ALL_BOWL[t].q75}</td><td class="mono right">${WKTS_WIN_BOWL[t].q50}</td><td class="mono right">${WKTS_WIN_BOWL[t].q75}</td><td class="mono right">${WKTS_LOSS_BOWL[t].q50}</td><td class="mono right">${WKTS_LOSS_BOWL[t].q75}</td></tr>`).join('');
+}
+
+// ── Bowling category tab ──
+let bowlCatView='abs';
+function setBowlCatView(v,btn){bowlCatView=v;btn.closest('#bowlcatViewToggle').querySelectorAll('.window-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderBowlCat()}
+function renderBowlCat(){
+  const tier=document.getElementById('bowlcatTierSelect').value;
+  const d=BOWL_CAT_DATA[tier];
+  const overs=[1,2,3,4,5];
+  const totals=overs.map(o=>CAT_KEYS.reduce((s,k)=>s+(d[o][k]||0),0));
+  makeStackedBar('bowlcat_stacked',overs.map(o=>'Over '+o),CAT_KEYS.map((k,i)=>({label:CAT_LABELS[i],data:overs.map((o,oi)=>bowlCatView==='pct'?+((d[o][k]||0)/totals[oi]*100).toFixed(1):(d[o][k]||0)),backgroundColor:CAT_COLORS[i],borderWidth:0,borderRadius:2})),bowlCatView==='pct');
+  makeLine('bowlcat_bad_line',overs.map(o=>'Over '+o),TIERS.map((t,i)=>{const td=BOWL_CAT_DATA[t];return{label:t,data:overs.map(o=>{const tot=CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0);return tot?+((td[o].Bad||0)/tot*100).toFixed(1):0}),borderColor:t===tier?'rgba(176,58,46,1)':TIER_COLORS[i],backgroundColor:'transparent',tension:0.3,pointRadius:t===tier?5:3,borderWidth:t===tier?3:1.2,borderDash:t===tier?[]:[4,3]}}));
+  let h=`<table class="heatmap-table"><thead><tr><th class="left">Tier</th>${overs.map(o=>`<th>Over ${o}</th>`).join('')}</tr></thead><tbody>`;
+  TIERS.forEach((t,ti)=>{const td=BOWL_CAT_DATA[t];h+=`<tr><td><span class="tier-badge" style="background:${TIER_COLORS[ti]}22;color:${TIER_COLORS[ti]};">${t}</span></td>`;overs.forEach(o=>{const tot=CAT_KEYS.reduce((s,k)=>s+(td[o][k]||0),0),bp=tot?+((td[o].Bad||0)/tot*100).toFixed(1):0,intensity=Math.min(bp/40,1),bg=`rgba(176,58,46,${(intensity*0.7).toFixed(2)})`,fg=intensity>0.4?'#fff':'var(--text)';h+=`<td class="mono right" style="background:${bg};color:${fg};border-radius:3px;">${bp}%</td>`;});h+=`</tr>`;});
+  document.getElementById('bowlcat_heatmap').innerHTML=h+'</tbody></table>';
+  document.getElementById('bowlcat_tbody').innerHTML=overs.map(o=>{const tot=totals[overs.indexOf(o)],p=k=>tot?((d[o][k]||0)/tot*100).toFixed(1)+'%':'0%';return`<tr><td><strong>Over ${o}</strong></td><td class="mono right" style="color:var(--teal);">${d[o].Elite||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Elite')}</td><td class="mono right" style="color:var(--accent);">${d[o].Good||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Good')}</td><td class="mono right" style="color:var(--amber);">${d[o].NeedsWork||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('NeedsWork')}</td><td class="mono right" style="color:var(--red);">${d[o].Bad||0}</td><td class="right" style="font-size:11px;color:var(--text-muted);">${p('Bad')}</td><td class="mono right">${tot}</td></tr>`;}).join('');
+}
+
+// ── Page routing ──
+const pageBuilt={};
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(!pageBuilt[id]){
+    if(id==='winloss') buildWLTab();
+    if(id==='overlevel') renderOverLevel();
+    if(id==='runscat') renderRunsCat();
+    if(id==='bowling') buildBowlingTab();
+    if(id==='bowlcat') renderBowlCat();
+    pageBuilt[id]=true;
+  }
+}
+
+// Init
+buildRunsTab();
+buildWktsTab();
 </script>
 </body>
 </html>
